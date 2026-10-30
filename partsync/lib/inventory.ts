@@ -3,6 +3,10 @@ import { StockError } from "@/lib/errors";
 import { formatQty, isLow, roundQty } from "@/lib/stock-rules";
 import { zonedDayStart } from "@/lib/time";
 import type {
+  Bom,
+  BomLine,
+  BomLineInput,
+  BomSummary,
   ItemDraft,
   MessageKind,
   MessageRecord,
@@ -150,6 +154,8 @@ const MOVEMENT_SELECT = `
     new_quantity AS newQuantity,
     person,
     note,
+    batch_id AS batchId,
+    batch_name AS batchName,
     created_at AS createdAt
   FROM movements
 `;
@@ -182,6 +188,7 @@ export function listMovements(
            OR item_name LIKE ? ESCAPE '\\'
            OR person LIKE ? ESCAPE '\\'
            OR note LIKE ? ESCAPE '\\'
+           OR batch_name LIKE ? ESCAPE '\\'
          )
        ORDER BY created_at DESC, id DESC
        LIMIT ?`,
@@ -192,6 +199,7 @@ export function listMovements(
       kind,
       kind,
       query,
+      pattern,
       pattern,
       pattern,
       pattern,
@@ -363,14 +371,17 @@ function insertMovement(
     next: number;
     person: string;
     note: string;
+    batchId: string | null;
+    batchName: string;
     now: string;
   },
 ): string {
   const id = crypto.randomUUID();
   db.prepare(
     `INSERT INTO movements (
-      id, item_id, item_name, item_unit, kind, amount, previous_quantity, new_quantity, person, note, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, item_id, item_name, item_unit, kind, amount, previous_quantity, new_quantity,
+      person, note, batch_id, batch_name, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     input.item.id,
@@ -382,6 +393,8 @@ function insertMovement(
     input.next,
     input.person,
     input.note,
+    input.batchId,
+    input.batchName,
     input.now,
   );
   return id;
@@ -501,6 +514,8 @@ export function moveStock(
     person: string;
     note: string;
     now?: string;
+    batchId?: string | null;
+    batchName?: string;
   },
 ): { item: ShelfItem; movement: MovementRecord; notice: Notice | null } {
   const now = input.now ?? new Date().toISOString();
@@ -551,6 +566,8 @@ export function moveStock(
       next,
       person,
       note,
+      batchId: input.batchId ?? null,
+      batchName: input.batchName ?? "",
       now,
     });
     if (restored) {
@@ -643,4 +660,196 @@ export function messagePayload(message: MessageRecord): {
   } catch {
     return {};
   }
+}
+
+const BOM_SELECT = `
+  SELECT id, name, notes, created_at AS createdAt, updated_at AS updatedAt
+  FROM boms
+`;
+
+function bomLines(db: Database, bomId: string): BomLine[] {
+  return db
+    .prepare(
+      `SELECT
+         l.id,
+         l.item_id AS itemId,
+         i.name,
+         i.sku,
+         i.unit,
+         l.quantity,
+         i.quantity AS inStock
+       FROM bom_lines l
+       JOIN items i ON i.id = l.item_id
+       WHERE l.bom_id = ?
+       ORDER BY i.name COLLATE NOCASE, i.id`,
+    )
+    .all(bomId) as BomLine[];
+}
+
+export function getBom(db: Database, id: string): Bom | null {
+  const row = db.prepare(`${BOM_SELECT} WHERE id = ?`).get(id) as
+    | Omit<Bom, "lines">
+    | undefined;
+  if (!row) return null;
+  return { ...row, lines: bomLines(db, id) };
+}
+
+export function listBoms(db: Database): BomSummary[] {
+  const rows = db
+    .prepare(
+      `SELECT
+         b.id,
+         b.name,
+         b.notes,
+         b.updated_at AS updatedAt,
+         COUNT(l.id) AS lineCount,
+         SUM(CASE WHEN l.id IS NOT NULL AND i.quantity < l.quantity THEN 1 ELSE 0 END) AS shortCount
+       FROM boms b
+       LEFT JOIN bom_lines l ON l.bom_id = b.id
+       LEFT JOIN items i ON i.id = l.item_id
+       GROUP BY b.id
+       ORDER BY b.name COLLATE NOCASE, b.id`,
+    )
+    .all() as (Omit<BomSummary, "short" | "lineCount"> & {
+    lineCount: number;
+    shortCount: number | null;
+  })[];
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    notes: row.notes,
+    lineCount: row.lineCount,
+    short: Number(row.shortCount ?? 0) > 0,
+    updatedAt: row.updatedAt,
+  }));
+}
+
+function replaceBomLines(db: Database, bomId: string, lines: BomLineInput[]) {
+  const merged = new Map<string, number>();
+  for (const line of lines) {
+    const quantity = roundQty(line.quantity);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      throw new StockError("Each line needs a quantity above zero.");
+    }
+    if (quantity > 1_000_000_000) throw new StockError("That quantity is too large.");
+    const item = getItem(db, line.itemId);
+    if (!item) throw new StockError("One of the lines is no longer on the catalogue.");
+    merged.set(item.id, roundQty((merged.get(item.id) ?? 0) + quantity));
+  }
+  if (merged.size === 0) throw new StockError("Pick at least one item for this group.");
+  if (merged.size > 80) throw new StockError("A group can hold up to 80 lines.");
+  db.prepare("DELETE FROM bom_lines WHERE bom_id = ?").run(bomId);
+  const insert = db.prepare(
+    "INSERT INTO bom_lines (id, bom_id, item_id, quantity) VALUES (?, ?, ?, ?)",
+  );
+  for (const [itemId, quantity] of merged) {
+    if (quantity > 1_000_000_000) throw new StockError("That quantity is too large.");
+    insert.run(crypto.randomUUID(), bomId, itemId, quantity);
+  }
+}
+
+export function createBom(
+  db: Database,
+  input: { name: string; notes: string; lines: BomLineInput[] },
+  now = new Date().toISOString(),
+): Bom {
+  const run = db.transaction(() => {
+    const id = crypto.randomUUID();
+    const name = requireText(
+      input.name,
+      120,
+      "Give the group a name.",
+      "That name is too long.",
+    );
+    const notes = optionalText(input.notes, 500, "That note is too long.");
+    db.prepare(
+      "INSERT INTO boms (id, name, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+    ).run(id, name, notes, now, now);
+    replaceBomLines(db, id, input.lines);
+    const bom = getBom(db, id);
+    if (!bom) throw new StockError("The group didn't save.");
+    return bom;
+  });
+  return run();
+}
+
+export function updateBom(
+  db: Database,
+  id: string,
+  input: { name: string; notes: string; lines: BomLineInput[] },
+  now = new Date().toISOString(),
+): Bom {
+  const run = db.transaction(() => {
+    const current = getBom(db, id);
+    if (!current) throw new StockError("That bill of materials is no longer here.");
+    const name = requireText(
+      input.name,
+      120,
+      "Give the group a name.",
+      "That name is too long.",
+    );
+    const notes = optionalText(input.notes, 500, "That note is too long.");
+    db.prepare("UPDATE boms SET name = ?, notes = ?, updated_at = ? WHERE id = ?").run(
+      name,
+      notes,
+      now,
+      id,
+    );
+    replaceBomLines(db, id, input.lines);
+    const bom = getBom(db, id);
+    if (!bom) throw new StockError("The group didn't save.");
+    return bom;
+  });
+  return run();
+}
+
+export function deleteBom(db: Database, id: string): void {
+  const result = db.prepare("DELETE FROM boms WHERE id = ?").run(id);
+  if (result.changes === 0) throw new StockError("That bill of materials is already gone.");
+}
+
+export function checkOutBom(
+  db: Database,
+  input: { bomId: string; person: string; note: string; now?: string },
+): { bom: Bom; movements: MovementRecord[]; notices: Notice[] } {
+  const now = input.now ?? new Date().toISOString();
+  const person = optionalText(input.person, 80, "That name is too long.");
+  if (!person) throw new StockError("Put your name on the ledger, so we know who took it.");
+  const note = optionalText(input.note, 500, "That note is too long.");
+  const run = db.transaction(() => {
+    const bom = getBom(db, input.bomId);
+    if (!bom) throw new StockError("That bill of materials is no longer here.");
+    if (bom.lines.length === 0) {
+      throw new StockError("This group has no lines to take out.");
+    }
+    const shortages = bom.lines
+      .filter((line) => line.quantity > line.inStock)
+      .map((line) => {
+        const stock = formatQty(line.inStock);
+        const verb = line.inStock === 1 ? "is" : "are";
+        return `${line.name} needs ${formatQty(line.quantity)} and ${stock} ${verb} in stock`;
+      });
+    if (shortages.length > 0) {
+      throw new StockError(`This group has to leave together. ${shortages.join(". ")}.`);
+    }
+    const batchId = crypto.randomUUID();
+    const movements: MovementRecord[] = [];
+    const notices: Notice[] = [];
+    for (const line of bom.lines) {
+      const outcome = moveStock(db, {
+        itemId: line.itemId,
+        kind: "out",
+        amount: line.quantity,
+        person,
+        note,
+        now,
+        batchId,
+        batchName: bom.name,
+      });
+      movements.push(outcome.movement);
+      if (outcome.notice) notices.push(outcome.notice);
+    }
+    return { bom, movements, notices };
+  });
+  return run();
 }

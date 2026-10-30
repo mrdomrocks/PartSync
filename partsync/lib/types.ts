@@ -27,7 +27,42 @@ export type MovementRecord = {
   newQuantity: number;
   person: string;
   note: string;
+  batchId: string | null;
+  batchName: string;
   createdAt: string;
+};
+
+export type BomLineInput = {
+  itemId: string;
+  quantity: number;
+};
+
+export type BomLine = {
+  id: string;
+  itemId: string;
+  name: string;
+  sku: string;
+  unit: string;
+  quantity: number;
+  inStock: number;
+};
+
+export type Bom = {
+  id: string;
+  name: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  lines: BomLine[];
+};
+
+export type BomSummary = {
+  id: string;
+  name: string;
+  notes: string;
+  lineCount: number;
+  short: boolean;
+  updatedAt: string;
 };
 
 export type MessageStatus = "held" | "sent" | "failed" | "cancelled";

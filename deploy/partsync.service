@@ -1,0 +1,19 @@
+[Unit]
+Description=PartSync stock monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# deploy/install.sh writes this file with the real user and paths.
+# The git clone is the app. package.json, the build, and the database are in ~/PartSync.
+User=pi
+WorkingDirectory=/home/pi/PartSync
+Environment=NODE_ENV=production
+EnvironmentFile=-/home/pi/PartSync/.env.local
+ExecStart=/usr/bin/node /home/pi/PartSync/node_modules/next/dist/bin/next start --hostname 0.0.0.0 --port 4747
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

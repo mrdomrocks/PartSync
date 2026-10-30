@@ -48,31 +48,14 @@ Put the Pi’s address in **Address on the network** (`http://192.168.1.20:4747`
 
 ## Raspberry Pi
 
-A Pi 4 or Pi 5, with 2 GB of RAM or more, is a comfortable host. Raspberry Pi OS often ships a Node that is too old for this app. Install Node 22, then build:
+A Pi 4 or Pi 5, with 2 GB of RAM or more, is a comfortable host. Raspberry Pi OS often ships a Node that is too old for this app. Run the installer as your normal user. It clones the repository to `~/PartSync` and builds the app in `~/PartSync/partsync`. Do not clone into a folder named `partsync`: the repository already contains that folder, and the result is `partsync/partsync`, which the service cannot start.
 
 ```bash
-sudo apt update
-sudo apt install -y build-essential python3
-# NodeSource, or the arm64 tarball from https://nodejs.org
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs
-
-# Copy this project onto the Pi, then:
-cd /home/pi/partsync
-npm install
-npm run build
-npm start
+git clone https://github.com/mrdomrocks/PartSync.git "$HOME/PartSync"
+bash "$HOME/PartSync/partsync/deploy/install.sh"
 ```
 
-`npm start` listens on `0.0.0.0:4747`. From another computer, open `http://<the-pi-ip>:4747`. `hostname -I` prints the Pi’s address.
-
-To start it on boot, edit the user and paths in `deploy/partsync.service`, then:
-
-```bash
-sudo cp deploy/partsync.service /etc/systemd/system/partsync.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now partsync
-```
+The service listens on `0.0.0.0:4747`. From another computer, open `http://<the-pi-ip>:4747`. `hostname -I` prints the Pi’s address.
 
 The database is `data/partsync.db`. Back it up with `npm run backup`, or stop the service and copy `data/partsync.db` together with the `-wal` and `-shm` files beside it.
 

@@ -16,7 +16,7 @@ export async function HostLine({ tone = "ink" }: { tone?: "ink" | "paper" }) {
     <p
       className={
         tone === "paper"
-          ? "text-xs leading-5 break-all text-[#d7cbb8]"
+          ? "text-xs leading-5 break-all text-primary-foreground/75"
           : "text-xs leading-5 break-all text-muted-foreground"
       }
     >

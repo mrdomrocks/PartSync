@@ -7,12 +7,12 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-outfit);
-  --font-mono: var(--font-outfit);
-  --font-heading: var(--font-fraunces);
-  --color-olive: oklch(0.42 0.07 145);
-  --color-low: oklch(0.94 0.045 78);
-  --color-low-ink: oklch(0.42 0.12 46);
+  --font-sans: var(--font-source);
+  --font-mono: var(--font-source);
+  --font-heading: var(--font-source);
+  --color-olive: #157a3a;
+  --color-low: #e7f8fe;
+  --color-low-ink: #0c4bdd;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -52,30 +52,30 @@
 }
 
 :root {
-  --background: oklch(0.955 0.018 88);
-  --foreground: oklch(0.28 0.028 58);
-  --card: oklch(0.978 0.012 92);
-  --card-foreground: oklch(0.28 0.028 58);
-  --popover: oklch(0.978 0.012 92);
-  --popover-foreground: oklch(0.28 0.028 58);
-  --primary: oklch(0.33 0.04 55);
-  --primary-foreground: oklch(0.97 0.015 90);
-  --secondary: oklch(0.93 0.02 86);
-  --secondary-foreground: oklch(0.28 0.028 58);
-  --muted: oklch(0.93 0.018 88);
-  --muted-foreground: oklch(0.48 0.03 60);
-  --accent: oklch(0.92 0.028 82);
-  --accent-foreground: oklch(0.28 0.028 58);
-  --destructive: oklch(0.5 0.16 32);
-  --border: oklch(0.86 0.025 82);
-  --input: oklch(0.86 0.025 82);
-  --ring: oklch(0.52 0.08 55);
+  --background: #f5f5f5;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: #0c4bdd;
+  --primary-foreground: #ffffff;
+  --secondary: #e7f8fe;
+  --secondary-foreground: #0c4bdd;
+  --muted: #f5f5f5;
+  --muted-foreground: #707070;
+  --accent: #e7f8fe;
+  --accent-foreground: #0c4bdd;
+  --destructive: #c42323;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #245de0;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.6rem;
+  --radius: 0.375rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -132,8 +132,9 @@
     @apply bg-background text-foreground;
   }
   .font-heading {
-    font-family: var(--font-fraunces), "Iowan Old Style", Palatino, "Palatino Linotype", serif;
-    font-optical-sizing: auto;
+    font-family: var(--font-source), "Segoe UI", sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
   }
 }
 

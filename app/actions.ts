@@ -34,7 +34,6 @@ function revalidateStock(itemId?: string) {
   revalidatePath("/");
   revalidatePath("/catalogue");
   revalidatePath("/ledger");
-  revalidatePath("/reorder");
   revalidatePath("/settings");
   revalidatePath("/boms");
   if (itemId) revalidatePath(`/items/${itemId}`);

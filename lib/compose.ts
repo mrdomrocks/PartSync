@@ -28,7 +28,7 @@ function toLetterItem(item: ShelfItem): LetterItem | null {
 export function reorderLink(publicUrl: string): string | null {
   const trimmed = publicUrl.trim().replace(/\/$/, "");
   if (!trimmed) return null;
-  return `${trimmed}/reorder`;
+  return trimmed;
 }
 
 export function composeMessage(

@@ -59,12 +59,12 @@ async function ItemScreen({ params }: { params: Promise<{ id: string }> }) {
   return (
     <>
       <p className="mb-3 text-sm text-muted-foreground">
-        <Link href="/catalogue" className="underline-offset-4 hover:underline">
-          Catalogue
+        <Link href="/" className="underline-offset-4 hover:underline">
+          Parts
         </Link>
       </p>
       <PageIntro
-        eyebrow={[item.category, item.sku].filter(Boolean).join(" · ") || "Catalogue"}
+        eyebrow={[item.category, item.sku].filter(Boolean).join(" · ") || "Parts"}
         title={item.name}
         lede={item.supplier ? `Order from ${item.supplier}.` : undefined}
       />

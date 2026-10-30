@@ -3,24 +3,11 @@
 import { useActionState } from "react";
 import {
   discardMessageAction,
-  sendDigestAction,
   sendPendingAction,
   sendTestAction,
 } from "@/app/actions";
 import { StatusNote } from "@/components/status-note";
 import { Button } from "@/components/ui/button";
-
-export function SendReorderButton() {
-  const [state, action, pending] = useActionState(sendDigestAction, null);
-  return (
-    <form action={action} className="no-print space-y-2">
-      <Button type="submit" className="h-11 px-4" disabled={pending}>
-        {pending ? "Preparing the email…" : "Email the order list"}
-      </Button>
-      <StatusNote state={state} />
-    </form>
-  );
-}
 
 export function SendPendingButton() {
   const [state, action, pending] = useActionState(sendPendingAction, null);

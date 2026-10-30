@@ -339,7 +339,7 @@ describe("letters and setup", () => {
     });
     assert.ok(letter);
     assert.match(letter.text, /Plasters/);
-    assert.match(letter.text, /http:\/\/10\.0\.0\.8:4747\/reorder/);
+    assert.match(letter.text, /http:\/\/10\.0\.0\.8:4747/);
     db.close();
   });
 

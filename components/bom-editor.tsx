@@ -118,7 +118,7 @@ export function BomEditor({ items, bom }: { items: ShelfItem[]; bom?: Bom }) {
         ) : null}
       </section>
       <div className="space-y-1.5">
-        <Label htmlFor="bom-search">Catalogue</Label>
+        <Label htmlFor="bom-search">Parts</Label>
         <Input
           id="bom-search"
           value={query}

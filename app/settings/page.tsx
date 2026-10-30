@@ -58,8 +58,7 @@ async function Settings() {
             </div>
             {messages.length === 0 ? (
               <p className="mt-5 text-sm text-muted-foreground">
-                No reorder mail yet. Take something below its line, or email the order list from
-                the board.
+                No reorder mail yet. Take a part below its line and the note will wait here until mail is set up.
               </p>
             ) : (
               <ol className="mt-5 divide-y divide-border">

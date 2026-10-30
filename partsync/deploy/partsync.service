@@ -1,0 +1,18 @@
+[Unit]
+Description=PartSync stock monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Change this user, and WorkingDirectory, to wherever you installed PartSync.
+User=pi
+WorkingDirectory=/home/pi/partsync
+Environment=NODE_ENV=production
+EnvironmentFile=-/home/pi/partsync/.env.local
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

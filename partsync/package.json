@@ -1,0 +1,45 @@
+{
+  "name": "partsync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PartSync keeps shelf counts, a ledger of what left, and an email when stock is low and needs ordering.",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0 --port 4747",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0 --port 4747",
+    "lint": "eslint",
+    "test": "tsx --test test/**/*.test.ts",
+    "backup": "tsx scripts/backup.ts"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.9.0",
+    "better-sqlite3": "^13.0.3",
+    "class-variance-authority": "^0.7.1",
+    "cn": "^0.5.0",
+    "lucide-react": "^1.64.0",
+    "next": "16.4.3",
+    "next-themes": "^0.4.6",
+    "nodemailer": "^10.3.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "shadcn": "^4.23.0",
+    "sonner": "^2.0.8",
+    "tw-animate-css": "^1.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^20",
+    "@types/nodemailer": "^8.0.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  }
+}

@@ -371,8 +371,8 @@ function insertMovement(
     next: number;
     person: string;
     note: string;
-    batchId: string | null;
-    batchName: string;
+    batchId?: string | null;
+    batchName?: string;
     now: string;
   },
 ): string {
@@ -393,8 +393,8 @@ function insertMovement(
     input.next,
     input.person,
     input.note,
-    input.batchId,
-    input.batchName,
+    input.batchId ?? null,
+    input.batchName ?? "",
     input.now,
   );
   return id;

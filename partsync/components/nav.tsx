@@ -58,8 +58,8 @@ export function SideNav() {
             href={link.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex h-11 items-center gap-3 rounded-lg px-3 text-sm text-[#f4ecdf]/80 transition-colors hover:bg-white/10 hover:text-[#f4ecdf]",
-              active && "bg-white/10 font-medium text-[#f4ecdf]",
+              "flex h-11 items-center gap-3 rounded-lg px-3 text-sm text-primary-foreground/80 transition-colors hover:bg-white/15 hover:text-primary-foreground",
+              active && "bg-white/15 font-medium text-primary-foreground",
             )}
           >
             <Icon className="size-4" aria-hidden />
@@ -76,7 +76,7 @@ export function MobileNav() {
   return (
     <nav
       aria-label="Sections"
-      className="no-print fixed inset-x-0 bottom-0 z-40 border-t border-[#3a3228] bg-[#2a241c] pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="no-print fixed inset-x-0 bottom-0 z-40 border-t border-white/20 bg-primary pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       <ul className="grid grid-cols-5">
         {links.map((link) => {
@@ -88,8 +88,8 @@ export function MobileNav() {
                 href={link.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] text-[#d7cbb8]",
-                  active && "text-[#f6efe4]",
+                  "flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] text-primary-foreground/75",
+                  active && "font-medium text-primary-foreground",
                 )}
               >
                 <Icon className="size-4" aria-hidden />

@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS movements (
   new_quantity REAL NOT NULL,
   person TEXT NOT NULL DEFAULT '',
   note TEXT NOT NULL DEFAULT '',
+  batch_id TEXT,
+  batch_name TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL
 );
 
@@ -50,11 +52,44 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS boms (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bom_lines (
+  id TEXT PRIMARY KEY,
+  bom_id TEXT NOT NULL REFERENCES boms(id) ON DELETE CASCADE,
+  item_id TEXT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  quantity REAL NOT NULL,
+  UNIQUE (bom_id, item_id)
+);
+
 CREATE INDEX IF NOT EXISTS items_name ON items (name);
 CREATE INDEX IF NOT EXISTS movements_created_at ON movements (created_at DESC);
 CREATE INDEX IF NOT EXISTS movements_item_id ON movements (item_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS messages_status ON messages (status, created_at DESC);
+CREATE INDEX IF NOT EXISTS bom_lines_bom_id ON bom_lines (bom_id);
 `;
+
+function columnNames(db: Database.Database, table: "movements"): Set<string> {
+  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  return new Set(rows.map((row) => row.name));
+}
+
+function migrate(db: Database.Database) {
+  const movements = columnNames(db, "movements");
+  if (!movements.has("batch_id")) {
+    db.exec("ALTER TABLE movements ADD COLUMN batch_id TEXT");
+  }
+  if (!movements.has("batch_name")) {
+    db.exec("ALTER TABLE movements ADD COLUMN batch_name TEXT NOT NULL DEFAULT ''");
+  }
+  db.exec("CREATE INDEX IF NOT EXISTS movements_batch_id ON movements (batch_id)");
+}
 
 export function openDatabase(filename: string): Database.Database {
   const db = new Database(filename);
@@ -62,6 +97,7 @@ export function openDatabase(filename: string): Database.Database {
   db.pragma("foreign_keys = ON");
   db.pragma("busy_timeout = 5000");
   db.exec(SCHEMA);
+  migrate(db);
   return db;
 }
 

@@ -1,6 +1,6 @@
 import { StockError } from "@/lib/errors";
 import { roundQty } from "@/lib/stock-rules";
-import type { ItemDraft, MovementKind, SecureMode } from "@/lib/types";
+import type { BomLineInput, ItemDraft, MovementKind, SecureMode } from "@/lib/types";
 import { isValidTimeZone } from "@/lib/time";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -55,6 +55,28 @@ export function itemDraftFromForm(formData: FormData): ItemDraft {
     lowStockAt: parseThreshold(String(formData.get("lowStockAt") ?? "")),
     supplier: clip(String(formData.get("supplier") ?? ""), 120, "The supplier"),
     notes: clip(String(formData.get("notes") ?? ""), 500, "The note"),
+  };
+}
+
+export function bomDraftFromForm(formData: FormData): {
+  name: string;
+  notes: string;
+  lines: BomLineInput[];
+} {
+  const raw = formData.getAll("line").map((value) => String(value));
+  if (raw.length === 0) throw new StockError("Pick at least one item for this group.");
+  const lines = raw.map((entry) => {
+    const splitAt = entry.indexOf("|");
+    if (splitAt <= 0) throw new StockError("One of the lines couldn't be read.");
+    const itemId = entry.slice(0, splitAt).trim();
+    const quantity = parseAmount(entry.slice(splitAt + 1));
+    if (quantity <= 0) throw new StockError("Each line needs a quantity above zero.");
+    return { itemId, quantity };
+  });
+  return {
+    name: String(formData.get("name") ?? ""),
+    notes: String(formData.get("notes") ?? ""),
+    lines,
   };
 }
 

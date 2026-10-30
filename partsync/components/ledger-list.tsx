@@ -17,7 +17,13 @@ export function LedgerList({
   return (
     <ol className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
       {movements.map((movement) => {
-        const detail = [movement.person, movement.note].filter(Boolean).join(" · ");
+        const detail = [
+          movement.person,
+          movement.note,
+          movement.batchName ? `Taken with ${movement.batchName}` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
         return (
           <li key={movement.id} className="px-4 py-3">
             <div className="flex items-baseline justify-between gap-3">

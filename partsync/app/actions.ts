@@ -5,17 +5,21 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { StockError } from "@/lib/errors";
 import {
+  checkOutBom,
+  createBom,
   createItem,
+  deleteBom,
   deleteItem,
   discardMessage,
   fileTestMessage,
   moveStock,
   pendingMessages,
   queueDigest,
+  updateBom,
   updateItem,
 } from "@/lib/inventory";
 import { deliverMessage } from "@/lib/mail";
-import { itemDraftFromForm, parseAmount, parseKind } from "@/lib/parse";
+import { bomDraftFromForm, itemDraftFromForm, parseAmount, parseKind } from "@/lib/parse";
 import { writeSettings } from "@/lib/settings";
 import { movementLine, stockLabel } from "@/lib/stock-rules";
 import type { ActionState } from "@/lib/types";
@@ -32,6 +36,7 @@ function revalidateStock(itemId?: string) {
   revalidatePath("/ledger");
   revalidatePath("/reorder");
   revalidatePath("/settings");
+  revalidatePath("/boms");
   if (itemId) revalidatePath(`/items/${itemId}`);
 }
 
@@ -216,6 +221,87 @@ export async function sendTestAction(
     unstable_rethrow(error);
     return fail(error);
   }
+}
+
+export async function createBomAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  let createdId: string | null = null;
+  try {
+    const bom = createBom(getDb(), bomDraftFromForm(formData));
+    createdId = bom.id;
+  } catch (error) {
+    unstable_rethrow(error);
+    return fail(error);
+  }
+  revalidateStock();
+  redirect(`/boms/${createdId}`);
+}
+
+export async function updateBomAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const id = String(formData.get("id") ?? "");
+  try {
+    updateBom(getDb(), id, bomDraftFromForm(formData));
+  } catch (error) {
+    unstable_rethrow(error);
+    return fail(error);
+  }
+  revalidateStock();
+  revalidatePath(`/boms/${id}`);
+  return { ok: true, message: "Group saved." };
+}
+
+export async function deleteBomAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const id = String(formData.get("id") ?? "");
+  try {
+    deleteBom(getDb(), id);
+  } catch (error) {
+    unstable_rethrow(error);
+    return fail(error);
+  }
+  revalidateStock();
+  redirect("/boms");
+}
+
+export async function checkOutBomAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const bomId = String(formData.get("bomId") ?? "");
+  let summary = "";
+  let noticeIds: string[] = [];
+  let itemIds: string[] = [];
+  try {
+    const outcome = checkOutBom(getDb(), {
+      bomId,
+      person: String(formData.get("person") ?? ""),
+      note: String(formData.get("note") ?? ""),
+    });
+    noticeIds = outcome.notices.map((notice) => notice.messageId);
+    itemIds = outcome.movements.flatMap((movement) =>
+      movement.itemId ? [movement.itemId] : [],
+    );
+    const count = outcome.movements.length;
+    summary = `Took ${outcome.bom.name} out. ${count} ${count === 1 ? "line" : "lines"} left the shelf.`;
+  } catch (error) {
+    unstable_rethrow(error);
+    return fail(error);
+  }
+  let extra = "";
+  for (const noticeId of noticeIds) {
+    extra += await sendNotice(noticeId);
+  }
+  revalidateStock();
+  revalidatePath(`/boms/${bomId}`);
+  for (const itemId of itemIds) revalidatePath(`/items/${itemId}`);
+  return { ok: true, message: `${summary}${extra}` };
 }
 
 export async function discardMessageAction(

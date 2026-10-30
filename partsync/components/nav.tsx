@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ClipboardList,
+  Layers,
   LayoutGrid,
   Package,
   ScrollText,
@@ -24,6 +25,12 @@ const links = [
     icon: Package,
     current: (pathname: string) =>
       pathname.startsWith("/catalogue") || pathname.startsWith("/items"),
+  },
+  {
+    href: "/boms",
+    label: "BoM",
+    icon: Layers,
+    current: (pathname: string) => pathname.startsWith("/boms"),
   },
   {
     href: "/ledger",
@@ -78,7 +85,7 @@ export function MobileNav() {
       aria-label="Sections"
       className="no-print fixed inset-x-0 bottom-0 z-40 border-t border-white/20 bg-primary pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-6">
         {links.map((link) => {
           const active = link.current(pathname);
           const Icon = link.icon;
@@ -88,7 +95,7 @@ export function MobileNav() {
                 href={link.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] text-primary-foreground/75",
+                  "flex min-h-14 flex-col items-center justify-center gap-1 text-[10px] text-primary-foreground/75",
                   active && "font-medium text-primary-foreground",
                 )}
               >

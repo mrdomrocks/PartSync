@@ -1,13 +1,21 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { afterEach, describe, it } from "node:test";
+import Database from "better-sqlite3";
 import { openDatabase } from "../lib/db";
 import { composeMessage } from "../lib/compose";
 import {
+  checkOutBom,
+  createBom,
   createItem,
   deleteItem,
   fileTestMessage,
+  getBom,
   getItem,
   getMessage,
+  listBoms,
   listMovements,
   lowItems,
   markMessage,
@@ -21,7 +29,6 @@ import { parseAmount } from "../lib/parse";
 import { readSettings, sendBlocker, writeSettings } from "../lib/settings";
 import { formatQty, roundQty } from "../lib/stock-rules";
 import { zonedDayStart } from "../lib/time";
-import type { Database } from "better-sqlite3";
 
 const envKeys = [
   "PARTSYNC_SITE_NAME",
@@ -50,7 +57,7 @@ function restoreEnv() {
   }
 }
 
-function tempDb(): Database {
+function tempDb(): Database.Database {
   return openDatabase(":memory:");
 }
 
@@ -406,5 +413,126 @@ describe("letters and setup", () => {
     });
     assert.throws(() => queueDigest(db), /Nothing is on or below/);
     db.close();
+  });
+
+  it("takes a bill of materials out together, or not at all", () => {
+    const db = tempDb();
+    const seal = createItem(db, {
+      name: "Pump seal",
+      sku: "SEAL",
+      category: "",
+      unit: "each",
+      quantity: 1,
+      lowStockAt: null,
+      supplier: "",
+      notes: "",
+    });
+    const bolt = createItem(db, {
+      name: "Bolt",
+      sku: "M6",
+      category: "",
+      unit: "each",
+      quantity: 10,
+      lowStockAt: 8,
+      supplier: "",
+      notes: "",
+    });
+    const bom = createBom(db, {
+      name: "Pump kit",
+      notes: "service",
+      lines: [
+        { itemId: seal.item.id, quantity: 1 },
+        { itemId: seal.item.id, quantity: 1 },
+        { itemId: bolt.item.id, quantity: 4 },
+      ],
+    });
+    assert.equal(bom.lines.length, 2);
+    assert.equal(bom.lines.find((line) => line.itemId === seal.item.id)?.quantity, 2);
+    assert.equal(listBoms(db)[0]?.short, true);
+    assert.throws(
+      () => checkOutBom(db, { bomId: bom.id, person: "Sam", note: "job 12" }),
+      /has to leave together/,
+    );
+    assert.equal(getItem(db, seal.item.id)?.quantity, 1);
+    assert.equal(getItem(db, bolt.item.id)?.quantity, 10);
+    assert.equal(listMovements(db).length, 0);
+
+    moveStock(db, {
+      itemId: seal.item.id,
+      kind: "in",
+      amount: 4,
+      person: "Sam",
+      note: "",
+    });
+    const outcome = checkOutBom(db, { bomId: bom.id, person: "Sam", note: "job 12" });
+    assert.equal(getItem(db, seal.item.id)?.quantity, 3);
+    assert.equal(getItem(db, bolt.item.id)?.quantity, 6);
+    assert.equal(outcome.movements.length, 2);
+    assert.equal(outcome.notices.length, 1);
+    assert.equal(new Set(outcome.movements.map((line) => line.batchId)).size, 1);
+    assert.equal(
+      outcome.movements.every((line) => line.batchName === "Pump kit" && line.person === "Sam"),
+      true,
+    );
+    assert.equal(listMovements(db, { query: "Pump kit" }).length, 2);
+    assert.equal(listBoms(db)[0]?.short, false);
+
+    deleteItem(db, bolt.item.id);
+    assert.equal(getBom(db, bom.id)?.lines.length, 1);
+    db.close();
+  });
+});
+
+describe("older databases", () => {
+  it("adds group columns to a ledger that already exists", () => {
+    const file = path.join(os.tmpdir(), `partsync-${crypto.randomUUID()}.db`);
+    const legacy = new Database(file);
+    legacy.exec(`CREATE TABLE movements (
+      id TEXT PRIMARY KEY,
+      item_id TEXT,
+      item_name TEXT NOT NULL,
+      item_unit TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      amount REAL NOT NULL,
+      previous_quantity REAL NOT NULL,
+      new_quantity REAL NOT NULL,
+      person TEXT NOT NULL DEFAULT '',
+      note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    )`);
+    legacy.close();
+    const db = openDatabase(file);
+    const names = new Set(
+      (db.prepare("PRAGMA table_info(movements)").all() as { name: string }[]).map(
+        (column) => column.name,
+      ),
+    );
+    assert.equal(names.has("batch_id"), true);
+    assert.equal(names.has("batch_name"), true);
+    assert.ok(db.prepare("SELECT name FROM sqlite_master WHERE name = 'boms'").get());
+    const created = createItem(db, {
+      name: "Gasket",
+      sku: "",
+      category: "",
+      unit: "each",
+      quantity: 3,
+      lowStockAt: null,
+      supplier: "",
+      notes: "",
+    });
+    moveStock(db, {
+      itemId: created.item.id,
+      kind: "out",
+      amount: 1,
+      person: "Sam",
+      note: "",
+    });
+    const line = listMovements(db)[0];
+    assert.equal(line?.batchId, null);
+    assert.equal(line?.batchName, "");
+    db.close();
+    fs.rmSync(file, { force: true });
+    fs.rmSync(`${file}-wal`, { force: true });
+    fs.rmSync(`${file}-shm`, { force: true });
   });
 });

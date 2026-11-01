@@ -95,9 +95,21 @@ Passwords are stored as scrypt hashes. A sign-in lasts 12 hours, in an httpOnly 
 
 When PartSync is served over HTTPS, set `PARTSYNC_SECURE_COOKIES=1` in `.env.local` so the cookie is only ever sent encrypted. Leave it off on plain `http://`, or browsers will refuse the cookie and nobody can sign in.
 
+## HTTPS
+
+Once the service is installed, this puts PartSync behind HTTPS on the same port:
+
+```bash
+sudo ./deploy/setup-https.sh
+```
+
+It installs [Caddy](https://caddyserver.com), which answers on port 4747 with a certificate made on the Pi, and moves PartSync itself to `127.0.0.1:4748` where only Caddy can reach it. `http://` on port 4747 redirects to `https://`. It also turns on `PARTSYNC_SECURE_COOKIES`.
+
+Each browser warns about the certificate once. To stop the warning, install `/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt` as a trusted root on each computer or phone. The certificate lists the Pi's addresses at the time the script ran, so run it again if the Pi's address changes, or give the Pi a DHCP reservation on the router. `sudo ./deploy/setup-https.sh --undo` goes back to plain `http://`.
+
 ## On the network
 
-The login stops strangers, but over plain `http://` the password crosses the network unencrypted. Keep port 4747 on the workshop network where you can, and put HTTPS in front of it before it is reachable from the internet.
+The login stops strangers. Without HTTPS the password crosses the network unencrypted, so run the HTTPS script before port 4747 is reachable from the internet.
 
 ## Checks
 

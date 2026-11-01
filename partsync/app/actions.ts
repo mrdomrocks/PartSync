@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
-import { requireAccount } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { StockError } from "@/lib/errors";
 import {
@@ -57,7 +56,6 @@ export async function createItemAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAccount();
   let createdId: string | null = null;
   let noticeId: string | null = null;
   try {
@@ -79,7 +77,6 @@ export async function updateItemAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAccount();
   const id = String(formData.get("id") ?? "");
   let noticeId: string | null = null;
   try {
@@ -98,7 +95,6 @@ export async function deleteItemAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAccount();
   const id = String(formData.get("id") ?? "");
   try {
     deleteItem(getDb(), id);
@@ -114,7 +110,6 @@ export async function moveAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAccount();
   let itemId = "";
   let summary = "";
   let noticeId: string | null = null;
@@ -142,7 +137,6 @@ export async function saveSettingsAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAccount();
   try {
     writeSettings(getDb(), {
       siteName: String(formData.get("siteName") ?? ""),
@@ -168,7 +162,6 @@ export async function sendDigestAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  await requireAccount();
   try {
     const db = getDb();
     const notice = queueDigest(db);
@@ -186,7 +179,6 @@ export async function sendPendingAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  await requireAccount();
   try {
     const db = getDb();
     const waiting = pendingMessages(db);
@@ -218,7 +210,6 @@ export async function sendTestAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  await requireAccount();
   try {
     const db = getDb();
     const notice = fileTestMessage(db);
@@ -236,7 +227,6 @@ export async function createBomAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAccount();
   let createdId: string | null = null;
   try {
     const bom = createBom(getDb(), bomDraftFromForm(formData));
@@ -253,7 +243,6 @@ export async function updateBomAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAccount();
   const id = String(formData.get("id") ?? "");
   try {
     updateBom(getDb(), id, bomDraftFromForm(formData));
@@ -270,7 +259,6 @@ export async function deleteBomAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAccount();
   const id = String(formData.get("id") ?? "");
   try {
     deleteBom(getDb(), id);
@@ -286,7 +274,6 @@ export async function checkOutBomAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAccount();
   const bomId = String(formData.get("bomId") ?? "");
   let summary = "";
   let noticeIds: string[] = [];
@@ -321,7 +308,6 @@ export async function discardMessageAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAccount();
   try {
     discardMessage(getDb(), String(formData.get("id") ?? ""));
     revalidateStock();

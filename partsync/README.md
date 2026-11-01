@@ -10,10 +10,11 @@ Node.js 20.9 or newer (22 is a good choice on a Pi).
 
 ```bash
 npm install
+npm run user -- add --email you@example.com --name "Your name"
 npm run dev
 ```
 
-Open [http://127.0.0.1:4747](http://127.0.0.1:4747). The dev server listens on every interface, so another device on the network can use this machine’s address, for example `http://192.168.1.20:4747`.
+Open [http://127.0.0.1:4747](http://127.0.0.1:4747) and sign in with that email and password. The dev server listens on every interface, so another device on the network can use this machine’s address, for example `http://192.168.1.20:4747`.
 
 The cupboard starts empty. **Add an item** puts the first thing on the shelf. Low items are marked **Order**. **Email the order list** files a reorder note. Until a mail server is set up, the note waits under **Setup**.
 
@@ -61,6 +62,7 @@ sudo apt install -y nodejs
 cd /home/pi/partsync
 npm install
 npm run build
+npm run user -- add --email you@example.com --name "Your name"
 npm start
 ```
 
@@ -76,9 +78,26 @@ sudo systemctl enable --now partsync
 
 The database is `data/partsync.db`. Back it up with `npm run backup`, or stop the service and copy `data/partsync.db` together with the `-wal` and `-shm` files beside it.
 
+## Sign in
+
+Every page needs an email and a password. There is no sign-up page. Accounts are made from the PartSync folder on the Pi, as the user that runs the service (not with `sudo`), and the password is typed at a hidden prompt:
+
+```bash
+npm run user -- add --email you@example.com --name "Your name"
+npm run user -- passwd --email you@example.com
+npm run user -- list
+npm run user -- remove --email you@example.com
+```
+
+`passwd` also signs that account out everywhere. Set `DATABASE_PATH` first if the service uses a database somewhere other than `data/partsync.db`.
+
+Passwords are stored as scrypt hashes. A sign-in lasts 12 hours, in an httpOnly cookie. Eight wrong passwords for one email lock that email for 15 minutes.
+
+When PartSync is served over HTTPS, set `PARTSYNC_SECURE_COOKIES=1` in `.env.local` so the cookie is only ever sent encrypted. Leave it off on plain `http://`, or browsers will refuse the cookie and nobody can sign in.
+
 ## On the network
 
-There is no login. Anyone who can open the address can change counts and the mail settings. Keep it on the workshop network. Don’t forward port 4747 to the internet.
+The login stops strangers, but over plain `http://` the password crosses the network unencrypted. Keep port 4747 on the workshop network where you can, and put HTTPS in front of it before it is reachable from the internet.
 
 ## Checks
 

@@ -68,7 +68,27 @@ CREATE TABLE IF NOT EXISTS bom_lines (
   UNIQUE (bom_id, item_id)
 );
 
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL DEFAULT '',
+  password_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  token_hash TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS login_failures (
+  email TEXT NOT NULL,
+  at INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS items_name ON items (name);
+CREATE INDEX IF NOT EXISTS login_failures_email ON login_failures (email, at);
 CREATE INDEX IF NOT EXISTS movements_created_at ON movements (created_at DESC);
 CREATE INDEX IF NOT EXISTS movements_item_id ON movements (item_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS messages_status ON messages (status, created_at DESC);

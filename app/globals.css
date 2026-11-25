@@ -157,4 +157,28 @@
     border: 0 !important;
     box-shadow: none !important;
   }
+  .label-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 4mm !important;
+    page: labels;
+  }
+  .label-cell {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    height: 67mm;
+    overflow: hidden;
+    border: 0.2mm solid #bbb;
+    padding: 2mm;
+    text-align: center;
+  }
+  .label-cell svg {
+    width: 38mm !important;
+    height: 38mm !important;
+  }
+}
+
+@page labels {
+  size: A4;
+  margin: 8mm;
 }

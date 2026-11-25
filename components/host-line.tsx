@@ -6,12 +6,8 @@ export async function HostLine({ tone = "ink" }: { tone?: "ink" | "paper" }) {
   const headerList = await headers();
   const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
   if (!host) return null;
-  const proto = headerList.get("x-forwarded-proto") ?? "http";
-  const url = `${proto}://${host}`;
   const local = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);
-  const copy = local
-    ? `On this machine at ${url}. Phones and other computers need the Pi's own address.`
-    : `On this network at ${url}.`;
+  const copy = local ? `This machine · ${host}` : host;
   return (
     <p
       className={

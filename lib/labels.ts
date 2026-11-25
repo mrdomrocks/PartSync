@@ -12,6 +12,26 @@ export function itemLabelPath(id: string): string {
   return `/items/${id}/label`;
 }
 
+export function labelSheetPath(ids: string[]): string {
+  const params = new URLSearchParams();
+  for (const id of ids) params.append("id", id);
+  const query = params.toString();
+  return query ? `/labels?${query}` : "/labels";
+}
+
+export function labelIdList(value: string | string[] | undefined): string[] {
+  const raw = Array.isArray(value) ? value : value ? [value] : [];
+  const seen = new Set<string>();
+  const ids: string[] = [];
+  for (const piece of raw.join(",").split(",")) {
+    const id = piece.trim().toLowerCase();
+    if (!UUID.test(id) || seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+  }
+  return ids;
+}
+
 function httpOrigin(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return "";

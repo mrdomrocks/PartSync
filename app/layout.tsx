@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Source_Sans_3 } from "next/font/google";
 import { Suspense } from "react";
+import { AppShell } from "@/components/app-shell";
 import { HostLine } from "@/components/host-line";
 import { MobileNav, SideNav } from "@/components/nav";
 import "./globals.css";
@@ -19,6 +20,18 @@ export const metadata: Metadata = {
   },
   description:
     "Shelf counts, a ledger of what left, and an email when stock is low and needs ordering.",
+  appleWebApp: {
+    capable: true,
+    title: "PartSync",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0c4bdd",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -34,41 +47,41 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <div className="min-h-full md:flex">
-          <aside className="no-print sticky top-0 hidden h-dvh w-60 shrink-0 flex-col bg-primary text-primary-foreground md:flex">
-            <div className="px-5 pt-7 pb-6">
-              <p className="font-heading text-3xl tracking-tight">PartSync</p>
-              <p className="mt-1 text-xs leading-5 text-primary-foreground/75">
-                Counts, a ledger, and a reorder email.
-              </p>
-            </div>
-            <Suspense fallback={<div className="flex-1" />}>
-              <SideNav />
-            </Suspense>
-            <div className="mt-auto px-5 pt-4 pb-6">
-              <Suspense fallback={null}>
-                <HostLine tone="paper" />
+        <AppShell
+          sidebar={
+            <>
+              <div className="px-5 pt-7 pb-6">
+                <p className="font-heading text-3xl tracking-tight">PartSync</p>
+                <p className="mt-1 text-xs leading-5 text-primary-foreground/75">
+                  Counts, a ledger, and a reorder email.
+                </p>
+              </div>
+              <Suspense fallback={<div className="flex-1" />}>
+                <SideNav />
               </Suspense>
-            </div>
-          </aside>
-          <div className="min-w-0 flex-1">
-            <header className="no-print border-b border-border bg-card px-4 py-3 md:hidden">
+              <div className="mt-auto px-5 pt-4 pb-6">
+                <Suspense fallback={null}>
+                  <HostLine tone="paper" />
+                </Suspense>
+              </div>
+            </>
+          }
+          mobileHeader={
+            <>
               <p className="font-heading text-2xl tracking-tight text-primary">PartSync</p>
               <Suspense fallback={null}>
                 <HostLine />
               </Suspense>
-            </header>
-            <main
-              id="content"
-              className="mx-auto w-full max-w-5xl px-4 py-6 pb-28 md:px-10 md:py-10 md:pb-16"
-            >
-              {children}
-            </main>
-          </div>
-        </div>
-        <Suspense fallback={null}>
-          <MobileNav />
-        </Suspense>
+            </>
+          }
+          mobileNav={
+            <Suspense fallback={null}>
+              <MobileNav />
+            </Suspense>
+          }
+        >
+          {children}
+        </AppShell>
       </body>
     </html>
   );

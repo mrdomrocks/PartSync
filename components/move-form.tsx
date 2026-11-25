@@ -44,6 +44,7 @@ export function MoveForm({
   people,
   person,
   onPerson,
+  focusPerson = false,
 }: {
   itemId: string;
   kind: MovementKind;
@@ -52,6 +53,7 @@ export function MoveForm({
   people: string[];
   person: string;
   onPerson: (person: string) => void;
+  focusPerson?: boolean;
 }) {
   const [state, submit, pending] = useActionState(moveAction, null);
   const [amount, setAmount] = useState(kind === "set" ? String(quantity) : "1");
@@ -102,6 +104,7 @@ export function MoveForm({
           maxLength={80}
           className="h-11 text-base"
           autoComplete="name"
+          autoFocus={focusPerson}
         />
         <datalist id={listId}>
           {people.map((name) => (

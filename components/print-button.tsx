@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 
-export function PrintButton() {
+export function PrintButton({ label = "Print this list" }: { label?: string }) {
   return (
     <Button
       type="button"
@@ -10,7 +10,7 @@ export function PrintButton() {
       className="no-print h-11 px-4"
       onClick={() => window.print()}
     >
-      Print this list
+      {label}
     </Button>
   );
 }

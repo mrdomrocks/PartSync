@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { LowMark } from "@/components/low-mark";
 import { MoveForm } from "@/components/move-form";
@@ -39,6 +40,14 @@ export function TakePanel({
       <p className="mt-1 text-sm leading-6 text-muted-foreground">
         Find the thing, say how many left, and put your name on the line.
       </p>
+      <div className="mt-4">
+        <Link
+          href="/scan"
+          className="inline-flex h-11 items-center rounded-lg border border-border bg-background px-4 text-sm font-medium"
+        >
+          Scan a label
+        </Link>
+      </div>
       <div className="mt-4">
         <label htmlFor="shelf-search" className="sr-only">
           Find an item

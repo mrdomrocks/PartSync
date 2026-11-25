@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { DeleteItem } from "@/components/delete-item";
+import { Button } from "@/components/ui/button";
 import { ItemForm } from "@/components/item-form";
 import { LedgerList } from "@/components/ledger-list";
 import { LowMark } from "@/components/low-mark";
@@ -16,6 +17,7 @@ import {
 } from "@/lib/inventory";
 import { liveDb } from "@/lib/live";
 import { readSettings } from "@/lib/settings";
+import { itemLabelPath } from "@/lib/labels";
 import { formatQty, isLow } from "@/lib/stock-rules";
 import { formatWhen } from "@/lib/time";
 
@@ -96,6 +98,16 @@ async function ItemScreen({ params }: { params: Promise<{ id: string }> }) {
           ) : null}
           <div className="mt-5 flex flex-wrap gap-2">
             <ItemForm mode="edit" item={item} hints={hints} />
+            <Button
+              variant="outline"
+              className="h-11 px-4"
+              render={<Link href={itemLabelPath(item.id)} />}
+            >
+              Print shelf label
+            </Button>
+            <Button variant="outline" className="h-11 px-4" render={<Link href="/scan" />}>
+              Scan a label
+            </Button>
             <DeleteItem id={item.id} name={item.name} />
           </div>
         </section>

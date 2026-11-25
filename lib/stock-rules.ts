@@ -30,3 +30,16 @@ export function movementLine(
 export function stockLabel(quantity: number, unit: string): string {
   return `${formatQty(quantity)} ${unit} in stock`;
 }
+
+export function bomBlockedCopy(
+  lines: { name: string; quantity: number; inStock: number }[],
+): string {
+  const shortages = lines
+    .filter((line) => line.quantity > line.inStock)
+    .map((line) => {
+      const verb = line.inStock === 1 ? "is" : "are";
+      return `${line.name} needs ${formatQty(line.quantity)} and ${formatQty(line.inStock)} ${verb} in stock`;
+    });
+  if (shortages.length === 0) return "";
+  return `This group has to leave together. ${shortages.join(". ")}.`;
+}

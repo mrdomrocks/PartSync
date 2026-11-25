@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { BomList } from "@/components/bom-list";
 import { PageIntro } from "@/components/page-intro";
 import { ShelfSkeleton } from "@/components/shelf-skeleton";
 import { listBoms } from "@/lib/inventory";
@@ -30,7 +31,7 @@ async function Boms() {
             : `${boms.length} ${boms.length === 1 ? "group" : "groups"}`
         }
         title="Bills of materials"
-        lede="Pick catalogue lines that have to leave the shelf together, then take the whole group out in one go."
+        lede="Pick catalogue lines that have to leave the shelf together. A printed code opens that checkout, and the whole group leaves in one go."
       />
       <div className="mb-6">
         <Link
@@ -46,30 +47,7 @@ async function Boms() {
           none of them, if one is short.
         </p>
       ) : (
-        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-          {boms.map((bom) => (
-            <li key={bom.id}>
-              <Link href={`/boms/${bom.id}`} className="block px-4 py-3 hover:bg-muted/60">
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="font-medium">{bom.name}</p>
-                  <span
-                    className={
-                      bom.short
-                        ? "shrink-0 text-xs font-medium tracking-wide text-destructive uppercase"
-                        : "shrink-0 text-xs font-medium tracking-wide text-olive uppercase"
-                    }
-                  >
-                    {bom.short ? "Short" : "Ready"}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {bom.lineCount} {bom.lineCount === 1 ? "line" : "lines"}
-                  {bom.notes ? ` · ${bom.notes}` : ""}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <BomList boms={boms} />
       )}
     </>
   );

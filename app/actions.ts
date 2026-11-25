@@ -302,6 +302,7 @@ export async function checkOutBomAction(
   }
   revalidateStock();
   revalidatePath(`/boms/${bomId}`);
+  revalidatePath(`/boms/${bomId}/take`);
   for (const itemId of itemIds) revalidatePath(`/items/${itemId}`);
   return { ok: true, message: `${summary}${extra}` };
 }

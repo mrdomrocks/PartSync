@@ -7,7 +7,8 @@ import { PageIntro } from "@/components/page-intro";
 import { ShelfSkeleton } from "@/components/shelf-skeleton";
 import { getBom, listItems, recentPeople } from "@/lib/inventory";
 import { liveDb } from "@/lib/live";
-import { formatQty, stockLabel } from "@/lib/stock-rules";
+import { bomLabelPath } from "@/lib/labels";
+import { bomBlockedCopy, formatQty, stockLabel } from "@/lib/stock-rules";
 import { cn } from "cn";
 
 export const metadata = {
@@ -20,19 +21,6 @@ export default function BomPage({ params }: { params: Promise<{ id: string }> })
       <BomScreen params={params} />
     </Suspense>
   );
-}
-
-function blockedCopy(
-  lines: { name: string; quantity: number; inStock: number }[],
-): string {
-  const shortages = lines
-    .filter((line) => line.quantity > line.inStock)
-    .map((line) => {
-      const verb = line.inStock === 1 ? "is" : "are";
-      return `${line.name} needs ${formatQty(line.quantity)} and ${formatQty(line.inStock)} ${verb} in stock`;
-    });
-  if (shortages.length === 0) return "";
-  return `This group has to leave together. ${shortages.join(". ")}.`;
 }
 
 async function BomScreen({ params }: { params: Promise<{ id: string }> }) {
@@ -54,7 +42,7 @@ async function BomScreen({ params }: { params: Promise<{ id: string }> }) {
   }
   const items = listItems(db);
   const people = recentPeople(db);
-  const blocked = blockedCopy(bom.lines);
+  const blocked = bomBlockedCopy(bom.lines);
   const ready = bom.lines.length > 0 && blocked === "";
 
   return (
@@ -108,6 +96,11 @@ async function BomScreen({ params }: { params: Promise<{ id: string }> }) {
         </section>
         <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <h2 className="mb-3 font-medium">Check out</h2>
+          <p className="mb-3 text-sm">
+            <Link href={bomLabelPath(bom.id)} className="underline underline-offset-4">
+              Print a QR code
+            </Link>
+          </p>
           {bom.lines.length === 0 ? (
             <p className="text-sm leading-6 text-muted-foreground">
               Add at least one catalogue line before this group can leave.

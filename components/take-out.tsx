@@ -24,7 +24,7 @@ export function TakeOut({
       people={people}
       person={person}
       onPerson={setPerson}
-      focusPerson
+      compact
     />
   );
 }

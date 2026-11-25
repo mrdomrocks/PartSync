@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { LowMark } from "@/components/low-mark";
-import { PageIntro } from "@/components/page-intro";
 import { ShelfSkeleton } from "@/components/shelf-skeleton";
 import { TakeOut } from "@/components/take-out";
 import { getItem, recentPeople } from "@/lib/inventory";
-import { itemLabelPath } from "@/lib/labels";
 import { liveDb } from "@/lib/live";
 import { formatQty, isLow } from "@/lib/stock-rules";
 
@@ -27,8 +24,8 @@ async function TakeScreen({ params }: { params: Promise<{ id: string }> }) {
   const item = getItem(db, id);
   if (!item) {
     return (
-      <div className="max-w-lg">
-        <h1 className="font-heading text-4xl tracking-tight">That item isn’t on the shelf</h1>
+      <div className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4">
+        <h1 className="font-heading text-3xl tracking-tight">That item isn’t on the shelf</h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           It may have been removed, or the address is wrong.
         </p>
@@ -40,40 +37,26 @@ async function TakeScreen({ params }: { params: Promise<{ id: string }> }) {
   }
   const people = recentPeople(db);
   const low = isLow(item.quantity, item.lowStockAt);
+  const detail = [item.category, item.sku].filter(Boolean).join(" · ");
 
   return (
-    <div className="max-w-lg">
-      <p className="mb-3 text-sm text-muted-foreground">
-        <Link href={`/items/${item.id}`} className="underline-offset-4 hover:underline">
-          Item details
-        </Link>
+    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] md:min-h-0 md:px-0 md:pt-0">
+      <p className="text-sm font-medium text-primary md:hidden">PartSync</p>
+      <h1 className="mt-3 font-heading text-3xl leading-tight tracking-tight text-balance break-words">
+        {item.name}
+      </h1>
+      {detail ? <p className="mt-1 text-sm break-words text-muted-foreground">{detail}</p> : null}
+      <p className="mt-4 font-heading text-5xl tracking-tight tabular-nums">
+        {formatQty(item.quantity)}
+        <span className="ml-2 font-sans text-base font-normal text-muted-foreground">{item.unit}</span>
       </p>
-      <PageIntro
-        eyebrow={[item.category, item.sku].filter(Boolean).join(" · ") || "Parts"}
-        title={item.name}
-        lede="Say how many left the shelf, and put your name on the line."
-      />
-      <section className="rounded-xl border border-border bg-card p-5">
-        <div className="mb-4 flex items-center gap-2">
-          {low ? <LowMark /> : null}
-          <p className="text-sm text-muted-foreground">In stock</p>
-        </div>
-        <p className="mb-5 font-heading text-6xl tracking-tight tabular-nums">
-          {formatQty(item.quantity)}
-          <span className="ml-2 font-sans text-base font-normal text-muted-foreground">
-            {item.unit}
-          </span>
-        </p>
-        <TakeOut
-          itemId={item.id}
-          unit={item.unit}
-          quantity={item.quantity}
-          people={people}
-        />
-      </section>
-      <p className="mt-4 text-sm">
-        <Link href={itemLabelPath(item.id)} className="underline underline-offset-4">
-          Print shelf label
+      {low ? <p className="mt-2 text-sm text-low-ink">On the reorder line</p> : null}
+      <div className="mt-6 flex flex-1 flex-col">
+        <TakeOut itemId={item.id} unit={item.unit} quantity={item.quantity} people={people} />
+      </div>
+      <p className="mt-4 text-center text-sm">
+        <Link href={`/items/${item.id}`} className="text-muted-foreground underline underline-offset-4">
+          Item details
         </Link>
       </p>
     </div>

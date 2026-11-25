@@ -57,14 +57,7 @@ bash "$HOME/PartSync/deploy/install.sh"
 
 The service listens on `0.0.0.0:4747`. From another computer, open `http://<the-pi-ip>:4747`. `hostname -I` prints the Pi’s address.
 
-A phone or laptop will not open the camera on that plain `http` address. Put the same port on HTTPS, then use **Scan a label** and tap **Open camera**:
-
-```bash
-cd ~/PartSync
-sudo ./deploy/setup-https.sh
-```
-
-Open `https://<the-pi-ip>:4747/scan`. The browser warns about the certificate once. Continue to the site and allow the camera. The live picture stays in the page and opens the item when it reads the code.
+A phone’s own camera opens a printed code on the take-out page. In Setup, set **Address on the network** to `http://<the-pi-ip>:4747` before printing, so the code does not point at this machine alone.
 
 The database is `data/partsync.db`. Back it up with `npm run backup`, or stop the service and copy `data/partsync.db` together with the `-wal` and `-shm` files beside it.
 

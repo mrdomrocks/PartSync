@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { LowMark } from "@/components/low-mark";
+import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { labelSheetPath } from "@/lib/labels";
 import { formatQty, isLow } from "@/lib/stock-rules";
 import { formatWhen } from "@/lib/time";
 import type { ShelfItem } from "@/lib/types";
@@ -26,6 +28,7 @@ export function CatalogueBrowser({
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const needle = query.trim().toLowerCase();
 
   const shown = useMemo(() => {
@@ -40,6 +43,30 @@ export function CatalogueBrowser({
         .includes(needle);
     });
   }, [items, needle, filter]);
+
+  const chosen = items.filter((item) => selected.has(item.id));
+  const allShown = shown.length > 0 && shown.every((item) => selected.has(item.id));
+
+  function toggle(id: string) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleShown() {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (allShown) {
+        for (const item of shown) next.delete(item.id);
+      } else {
+        for (const item of shown) next.add(item.id);
+      }
+      return next;
+    });
+  }
 
   return (
     <div>
@@ -74,6 +101,29 @@ export function CatalogueBrowser({
           ))}
         </div>
       </div>
+      {shown.length > 0 ? (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <label className="flex h-11 items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="size-5 accent-primary"
+              checked={allShown}
+              onChange={toggleShown}
+            />
+            Select all
+          </label>
+          {chosen.length > 0 ? (
+            <Link
+              href={labelSheetPath(chosen.map((item) => item.id))}
+              className={buttonVariants({ className: "h-11 px-4" })}
+            >
+              Print {chosen.length} {chosen.length === 1 ? "QR code" : "QR codes"} on A4
+            </Link>
+          ) : (
+            <p className="text-sm text-muted-foreground">Tick parts to print their codes on one A4 sheet.</p>
+          )}
+        </div>
+      ) : null}
       {shown.length === 0 ? (
         <p className="mt-6 text-sm text-muted-foreground">Nothing matches that filter.</p>
       ) : (
@@ -81,10 +131,17 @@ export function CatalogueBrowser({
           {shown.map((item) => {
             const low = isLow(item.quantity, item.lowStockAt);
             return (
-              <li key={item.id}>
+              <li key={item.id} className="flex items-center gap-3 px-4 py-3">
+                <input
+                  type="checkbox"
+                  className="size-5 shrink-0 accent-primary"
+                  checked={selected.has(item.id)}
+                  aria-label={`Select ${item.name}`}
+                  onChange={() => toggle(item.id)}
+                />
                 <Link
                   href={`/items/${item.id}`}
-                  className="flex items-center justify-between gap-4 px-4 py-4 hover:bg-muted/60"
+                  className="flex min-w-0 flex-1 items-center justify-between gap-4 py-1 hover:bg-muted/60"
                 >
                   <span className="min-w-0">
                     <span className="flex flex-wrap items-center gap-2">

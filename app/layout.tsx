@@ -47,41 +47,43 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <AppShell
-          sidebar={
-            <>
-              <div className="px-5 pt-7 pb-6">
-                <p className="font-heading text-3xl tracking-tight">PartSync</p>
-                <p className="mt-1 text-xs leading-5 text-primary-foreground/75">
-                  Counts, a ledger, and a reorder email.
-                </p>
-              </div>
-              <Suspense fallback={<div className="flex-1" />}>
-                <SideNav />
-              </Suspense>
-              <div className="mt-auto px-5 pt-4 pb-6">
-                <Suspense fallback={null}>
-                  <HostLine tone="paper" />
+        <Suspense fallback={null}>
+          <AppShell
+            sidebar={
+              <>
+                <div className="px-5 pt-7 pb-6">
+                  <p className="font-heading text-3xl tracking-tight">PartSync</p>
+                  <p className="mt-1 text-xs leading-5 text-primary-foreground/75">
+                    Counts, a ledger, and a reorder email.
+                  </p>
+                </div>
+                <Suspense fallback={<div className="flex-1" />}>
+                  <SideNav />
                 </Suspense>
-              </div>
-            </>
-          }
-          mobileHeader={
-            <>
-              <p className="font-heading text-2xl tracking-tight text-primary">PartSync</p>
+                <div className="mt-auto px-5 pt-4 pb-6">
+                  <Suspense fallback={null}>
+                    <HostLine tone="paper" />
+                  </Suspense>
+                </div>
+              </>
+            }
+            mobileHeader={
+              <>
+                <p className="font-heading text-2xl tracking-tight text-primary">PartSync</p>
+                <Suspense fallback={null}>
+                  <HostLine />
+                </Suspense>
+              </>
+            }
+            mobileNav={
               <Suspense fallback={null}>
-                <HostLine />
+                <MobileNav />
               </Suspense>
-            </>
-          }
-          mobileNav={
-            <Suspense fallback={null}>
-              <MobileNav />
-            </Suspense>
-          }
-        >
-          {children}
-        </AppShell>
+            }
+          >
+            {children}
+          </AppShell>
+        </Suspense>
       </body>
     </html>
   );

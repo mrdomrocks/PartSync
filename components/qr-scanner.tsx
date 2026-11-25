@@ -1,107 +1,146 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { parseScannedItem } from "@/lib/labels";
 
-const insecureCopy =
-  "The camera stays off on a plain network address. Use the phone’s own camera on the printed label, or open this page on this machine.";
-
-function subscribe() {
-  return () => {};
-}
-
 export function QrScanner() {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
+  const controlsRef = useRef<{ stop: () => void } | null>(null);
   const handled = useRef(false);
-  const secure = useSyncExternalStore(
-    subscribe,
-    () => window.isSecureContext,
-    () => null as boolean | null,
-  );
-  const [message, setMessage] = useState("Looking for a PartSync label.");
+  const [live, setLive] = useState(false);
+  const [message, setMessage] = useState("Open the camera and point it at a PartSync label.");
   const [pasted, setPasted] = useState("");
+
+  useEffect(() => {
+    return () => {
+      controlsRef.current?.stop();
+    };
+  }, []);
 
   function openCode(raw: string) {
     if (handled.current) return;
     const id = parseScannedItem(raw);
     if (!id) {
-      setMessage("That code isn’t a PartSync item.");
+      setMessage("That code isn’t a PartSync item. Hold the label steady in the frame.");
       return;
     }
     handled.current = true;
+    controlsRef.current?.stop();
     router.push(`/items/${id}/take`);
   }
 
-  useEffect(() => {
-    if (secure !== true) return;
+  async function startLiveCamera() {
     const video = videoRef.current;
-    if (!video) return;
-
-    let stopped = false;
-    let controls: { stop: () => void } | null = null;
-
-    (async () => {
-      try {
-        const { BrowserQRCodeReader } = await import("@zxing/browser");
-        if (stopped) return;
-        const reader = new BrowserQRCodeReader();
-        const next = await reader.decodeFromConstraints(
-          { video: { facingMode: { ideal: "environment" } } },
-          video,
-          (result, _error, active) => {
-            if (!result || handled.current) return;
-            const id = parseScannedItem(result.getText());
-            if (!id) {
-              setMessage("That code isn’t a PartSync item.");
-              return;
-            }
-            handled.current = true;
-            active.stop();
-            router.push(`/items/${id}/take`);
-          },
-        );
-        if (stopped) {
-          next.stop();
+    if (!video || !navigator.mediaDevices?.getUserMedia) return false;
+    setMessage("Opening the camera.");
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: "environment" } },
+    });
+    video.srcObject = stream;
+    await video.play();
+    const { BrowserQRCodeReader } = await import("@zxing/browser");
+    const controls = await new BrowserQRCodeReader().decodeFromStream(
+      stream,
+      video,
+      (result, _error, active) => {
+        if (!result || handled.current) return;
+        const id = parseScannedItem(result.getText());
+        if (!id) {
+          setMessage("That code isn’t a PartSync item. Hold the label steady in the frame.");
           return;
         }
-        controls = next;
+        handled.current = true;
+        active.stop();
+        router.push(`/items/${id}/take`);
+      },
+    );
+    controlsRef.current = controls;
+    setLive(true);
+    setMessage("Point the camera at a PartSync label.");
+    return true;
+  }
+
+  async function openCamera() {
+    if (handled.current) return;
+    if (window.isSecureContext && navigator.mediaDevices?.getUserMedia) {
+      try {
+        const started = await startLiveCamera();
+        if (started) return;
       } catch (error) {
-        if (stopped) return;
         const name = error instanceof DOMException ? error.name : "";
         if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-          setMessage("The camera is blocked. Allow it for this site, or paste the link from the code.");
-        } else if (name === "NotFoundError") {
-          setMessage("No camera was found on this device. Paste the link from the code instead.");
-        } else {
-          setMessage("The camera didn’t start. Paste the link from the code instead.");
+          setMessage("The camera is blocked. Allow the camera for this site, then tap Open camera again.");
+          return;
+        }
+        if (name === "NotFoundError" || name === "OverconstrainedError") {
+          setMessage("No camera was found on this device.");
+          return;
         }
       }
-    })();
+    }
+    setMessage(
+      "The live scanner needs the https address. This button opens the camera so you can photograph the label.",
+    );
+    photoRef.current?.click();
+  }
 
-    return () => {
-      stopped = true;
-      controls?.stop();
-    };
-  }, [router, secure]);
+  async function onPhoto(file: File) {
+    const url = URL.createObjectURL(file);
+    try {
+      const image = new Image();
+      image.src = url;
+      await image.decode();
+      const { BrowserQRCodeReader } = await import("@zxing/browser");
+      const result = await new BrowserQRCodeReader().decodeFromImageElement(image);
+      openCode(result.getText());
+    } catch {
+      setMessage("No PartSync code was in that photo. Move closer and try again.");
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
 
   return (
     <div className="max-w-lg space-y-4">
-      {secure === true ? (
+      <div className="relative overflow-hidden rounded-xl bg-black">
         <video
           ref={videoRef}
-          className="aspect-square w-full rounded-xl bg-black object-cover"
+          className="aspect-square w-full object-cover"
           muted
           playsInline
           autoPlay
         />
-      ) : null}
+        {live ? (
+          <div className="pointer-events-none absolute inset-[12%] rounded-lg border-2 border-white/80" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center p-6">
+            <Button type="button" className="h-12 px-5 text-base" onClick={() => void openCamera()}>
+              Open camera
+            </Button>
+          </div>
+        )}
+      </div>
+      <input
+        ref={photoRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (file) void onPhoto(file);
+        }}
+      />
       <p className="text-sm leading-6 text-muted-foreground" role="status">
-        {secure === false ? insecureCopy : message}
+        {message}
       </p>
       <form
         className="space-y-3"
@@ -111,7 +150,7 @@ export function QrScanner() {
         }}
       >
         <div className="space-y-1.5">
-          <Label htmlFor="pasted-code">Paste a PartSync link</Label>
+          <Label htmlFor="pasted-code">Or paste a PartSync link</Label>
           <Input
             id="pasted-code"
             value={pasted}
@@ -121,7 +160,7 @@ export function QrScanner() {
             autoComplete="off"
           />
         </div>
-        <Button type="submit" className="h-11 px-4">
+        <Button type="submit" variant="outline" className="h-11 px-4">
           Open that item
         </Button>
       </form>

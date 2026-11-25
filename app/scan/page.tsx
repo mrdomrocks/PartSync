@@ -12,7 +12,7 @@ export default function ScanPage() {
       <PageIntro
         eyebrow="Shelf label"
         title="Scan a label"
-        lede="Point the camera at a PartSync code. It opens that item so you can take it out of stock."
+        lede="Tap Open camera and hold the label in the frame. PartSync opens that item so you can take it out of stock."
       />
       <QrScanner />
       <p className="mt-6 text-sm">

@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { labelIdList, labelSheetPath, labelTarget, parseScannedItem } from "../lib/labels";
+import {
+  bomLabelSheetPath,
+  bomLabelTarget,
+  labelIdList,
+  labelSheetPath,
+  labelTarget,
+  parseScannedItem,
+} from "../lib/labels";
 
 const id = "11111111-1111-4111-8111-111111111111";
 
@@ -24,10 +31,17 @@ describe("shelf labels", () => {
     assert.equal(parseScannedItem(`/items/${id.toUpperCase()}/take`), id);
   });
 
+  it("builds a group checkout link from the network address", () => {
+    const target = bomLabelTarget("http://192.168.1.20:4747", "http://localhost:4747", id);
+    assert.equal(target.url, `http://192.168.1.20:4747/boms/${id}/take`);
+    assert.equal(target.warning, null);
+  });
+
   it("keeps a list of item ids for a printed sheet", () => {
     const other = "22222222-2222-4222-8222-222222222222";
     assert.deepEqual(labelIdList([id, id.toUpperCase(), ` ${other} `, "nope"]), [id, other]);
     assert.equal(labelSheetPath([id, other]), `/labels?id=${id}&id=${other}`);
+    assert.equal(bomLabelSheetPath([id, other]), `/boms/labels?id=${id}&id=${other}`);
   });
 
   it("rejects codes that are not an item", () => {

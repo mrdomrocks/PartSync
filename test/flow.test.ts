@@ -7,6 +7,7 @@ describe("handheld scan flow", () => {
     assert.equal(isHandheldFlow("/scan"), false);
     assert.equal(isHandheldFlow("/items/11111111-1111-4111-8111-111111111111/take"), true);
     assert.equal(isHandheldFlow("/items/11111111-1111-4111-8111-111111111111/take/"), true);
+    assert.equal(isHandheldFlow("/boms/11111111-1111-4111-8111-111111111111/take"), true);
   });
 
   it("leaves the rest of the app in the normal frame", () => {
@@ -14,5 +15,8 @@ describe("handheld scan flow", () => {
     assert.equal(isHandheldFlow("/items/11111111-1111-4111-8111-111111111111"), false);
     assert.equal(isHandheldFlow("/items/11111111-1111-4111-8111-111111111111/label"), false);
     assert.equal(isHandheldFlow("/ledger"), false);
+    assert.equal(isHandheldFlow("/boms"), false);
+    assert.equal(isHandheldFlow("/boms/labels"), false);
+    assert.equal(isHandheldFlow("/boms/11111111-1111-4111-8111-111111111111/label"), false);
   });
 });

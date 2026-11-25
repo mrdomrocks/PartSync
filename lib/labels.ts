@@ -19,6 +19,21 @@ export function labelSheetPath(ids: string[]): string {
   return query ? `/labels?${query}` : "/labels";
 }
 
+export function bomTakePath(id: string): string {
+  return `/boms/${id}/take`;
+}
+
+export function bomLabelPath(id: string): string {
+  return `/boms/${id}/label`;
+}
+
+export function bomLabelSheetPath(ids: string[]): string {
+  const params = new URLSearchParams();
+  for (const id of ids) params.append("id", id);
+  const query = params.toString();
+  return query ? `/boms/labels?${query}` : "/boms/labels";
+}
+
 export function labelIdList(value: string | string[] | undefined): string[] {
   const raw = Array.isArray(value) ? value : value ? [value] : [];
   const seen = new Set<string>();
@@ -54,17 +69,33 @@ function isLocalOrigin(origin: string): boolean {
   }
 }
 
+function labelledUrl(
+  publicUrl: string,
+  requestOrigin: string,
+  path: string,
+): { url: string; warning: string | null } {
+  const origin = httpOrigin(publicUrl) || httpOrigin(requestOrigin);
+  const url = origin ? `${origin}${path}` : path;
+  return {
+    url,
+    warning: isLocalOrigin(origin) ? LABEL_ADDRESS_WARNING : null,
+  };
+}
+
 export function labelTarget(
   publicUrl: string,
   requestOrigin: string,
   id: string,
 ): { url: string; warning: string | null } {
-  const origin = httpOrigin(publicUrl) || httpOrigin(requestOrigin);
-  const url = origin ? `${origin}${itemTakePath(id)}` : itemTakePath(id);
-  return {
-    url,
-    warning: isLocalOrigin(origin) ? LABEL_ADDRESS_WARNING : null,
-  };
+  return labelledUrl(publicUrl, requestOrigin, itemTakePath(id));
+}
+
+export function bomLabelTarget(
+  publicUrl: string,
+  requestOrigin: string,
+  id: string,
+): { url: string; warning: string | null } {
+  return labelledUrl(publicUrl, requestOrigin, bomTakePath(id));
 }
 
 export function parseScannedItem(raw: string): string | null {

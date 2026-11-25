@@ -1,3 +1,5 @@
 export function isHandheldFlow(pathname: string): boolean {
-  return /^\/items\/[^/]+\/take\/?$/.test(pathname);
+  return (
+    /^\/items\/[^/]+\/take\/?$/.test(pathname) || /^\/boms\/[^/]+\/take\/?$/.test(pathname)
+  );
 }

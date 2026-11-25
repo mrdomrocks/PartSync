@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { CatalogueBrowser } from "@/components/catalogue-browser";
 import { ItemForm } from "@/components/item-form";
@@ -37,8 +38,11 @@ async function Parts() {
         title="Parts"
         lede="Everything you count, the unit you count it in, and the line where it needs ordering."
       />
-      <div className="mb-6">
+      <div className="mb-6 flex flex-wrap items-center gap-4">
         <ItemForm mode="create" hints={hints} />
+        <Link href="/scan" className="text-sm underline underline-offset-4">
+          Scan a label
+        </Link>
       </div>
       {items.length === 0 ? (
         <p className="max-w-lg text-sm leading-6 text-muted-foreground">

@@ -36,7 +36,10 @@ function revalidateStock(itemId?: string) {
   revalidatePath("/ledger");
   revalidatePath("/settings");
   revalidatePath("/boms");
-  if (itemId) revalidatePath(`/items/${itemId}`);
+  if (itemId) {
+    revalidatePath(`/items/${itemId}`);
+    revalidatePath(`/items/${itemId}/take`);
+  }
 }
 
 async function sendNotice(messageId: string | null): Promise<string> {

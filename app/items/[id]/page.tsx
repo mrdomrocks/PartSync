@@ -98,6 +98,14 @@ async function ItemScreen({ params }: { params: Promise<{ id: string }> }) {
             <ItemForm mode="edit" item={item} hints={hints} />
             <DeleteItem id={item.id} name={item.name} />
           </div>
+          <div className="mt-3 flex flex-wrap gap-4 text-sm">
+            <Link href={`/items/${item.id}/label`} className="underline underline-offset-4">
+              Print shelf label
+            </Link>
+            <Link href="/scan" className="underline underline-offset-4">
+              Scan a label
+            </Link>
+          </div>
         </section>
         <StockActions item={item} people={people} />
       </div>

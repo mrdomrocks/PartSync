@@ -313,6 +313,7 @@ describe("letters and setup", () => {
     assert.match(letter.subject, /Nitrile gloves \(M\)/);
     assert.match(letter.subject, /needs ordering/);
     assert.match(letter.text, /2 boxes/);
+    assert.match(letter.text, /SKU\s+GLV-M/);
     assert.match(letter.text, /Medisupply/);
     assert.match(letter.text, /Coffee beans/);
     assert.match(letter.text, /192\.168\.1\.20:4747\/reorder/);
@@ -339,7 +340,10 @@ describe("letters and setup", () => {
     });
     assert.ok(letter);
     assert.match(letter.text, /Plasters/);
+    assert.match(letter.text, /SKU\s+AID/);
+    assert.match(letter.text, /Supplier\s+Medisupply/);
     assert.match(letter.text, /http:\/\/10\.0\.0\.8:4747\/reorder/);
+    assert.match(letter.text, /http:\/\/10\.0\.0\.8:4747\/items\//);
     db.close();
   });
 
@@ -455,7 +459,10 @@ describe("letters and setup", () => {
     );
     assert.equal(getItem(db, seal.item.id)?.quantity, 1);
     assert.equal(getItem(db, bolt.item.id)?.quantity, 10);
-    assert.equal(listMovements(db).length, 0);
+    assert.equal(
+      listMovements(db).filter((line) => line.note !== "Opening count").length,
+      0,
+    );
 
     moveStock(db, {
       itemId: seal.item.id,

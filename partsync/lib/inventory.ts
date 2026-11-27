@@ -14,6 +14,7 @@ import type {
   MovementKind,
   MovementRecord,
   Notice,
+  PriceTax,
   ShelfItem,
 } from "@/lib/types";
 
@@ -42,6 +43,12 @@ type ItemRow = {
   quantity: number;
   lowStockAt: number | null;
   supplier: string;
+  productUrl: string;
+  priceAmount: number | null;
+  priceCurrency: string;
+  priceTax: string;
+  priceCheckedAt: string | null;
+  priceDetail: string;
   notes: string;
   alertActive: number;
   createdAt: string;
@@ -59,6 +66,12 @@ const ITEM_SELECT = `
     i.quantity,
     i.low_stock_at AS lowStockAt,
     i.supplier,
+    i.product_url AS productUrl,
+    i.price_amount AS priceAmount,
+    i.price_currency AS priceCurrency,
+    i.price_tax AS priceTax,
+    i.price_checked_at AS priceCheckedAt,
+    i.price_detail AS priceDetail,
     i.notes,
     i.alert_active AS alertActive,
     i.created_at AS createdAt,
@@ -72,6 +85,10 @@ const ITEM_SELECT = `
   FROM items i
 `;
 
+function asPriceTax(value: string): PriceTax {
+  return value === "ex" || value === "inc" ? value : "";
+}
+
 function mapItem(row: ItemRow): ShelfItem {
   return {
     id: row.id,
@@ -82,6 +99,12 @@ function mapItem(row: ItemRow): ShelfItem {
     quantity: row.quantity,
     lowStockAt: row.lowStockAt,
     supplier: row.supplier,
+    productUrl: row.productUrl,
+    priceAmount: row.priceAmount,
+    priceCurrency: row.priceCurrency,
+    priceTax: asPriceTax(row.priceTax),
+    priceCheckedAt: row.priceCheckedAt,
+    priceDetail: row.priceDetail,
     notes: row.notes,
     alertActive: row.alertActive === 1,
     createdAt: row.createdAt,
@@ -103,6 +126,29 @@ function optionalText(value: string, max: number, tooLong: string): string {
   return trimmed;
 }
 
+function cleanProductUrl(value: string | undefined): string {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) return "";
+  if (trimmed.length > 1000) {
+    throw new StockError("That product page link is too long.");
+  }
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    throw new StockError(
+      "The product page should be a link, like https://supplier.example/item.",
+    );
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new StockError("The product page link should start with http:// or https://.");
+  }
+  if (url.username || url.password) {
+    throw new StockError("The product page link shouldn't include a username or password.");
+  }
+  return url.toString();
+}
+
 function cleanDraft(draft: ItemDraft): ItemDraft {
   const lowStockAt =
     draft.lowStockAt == null ? null : roundQty(draft.lowStockAt);
@@ -118,6 +164,7 @@ function cleanDraft(draft: ItemDraft): ItemDraft {
       "each",
     lowStockAt,
     supplier: optionalText(draft.supplier, 120, "That supplier name is too long."),
+    productUrl: cleanProductUrl(draft.productUrl),
     notes: optionalText(draft.notes, 500, "That note is too long."),
   };
 }
@@ -417,8 +464,8 @@ export function createItem(
   const run = db.transaction(() => {
     db.prepare(
       `INSERT INTO items (
-        id, name, sku, category, unit, quantity, low_stock_at, supplier, notes, alert_active, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, name, sku, category, unit, quantity, low_stock_at, supplier, product_url, notes, alert_active, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       cleaned.name,
@@ -428,6 +475,7 @@ export function createItem(
       quantity,
       cleaned.lowStockAt,
       cleaned.supplier,
+      cleaned.productUrl ?? "",
       cleaned.notes,
       notify ? 1 : 0,
       now,
@@ -469,10 +517,15 @@ export function updateItem(
     const crossed = !wasLow && nowLow;
     const restored = wasLow && !nowLow;
     const alertActive = crossed ? 1 : restored ? 0 : current.alertActive ? 1 : 0;
+    const lookupChanged =
+      current.sku !== cleaned.sku ||
+      current.supplier !== cleaned.supplier ||
+      current.productUrl !== (cleaned.productUrl ?? "");
     db.prepare(
       `UPDATE items
-       SET name = ?, sku = ?, category = ?, unit = ?, low_stock_at = ?, supplier = ?, notes = ?,
-           alert_active = ?, updated_at = ?
+       SET name = ?, sku = ?, category = ?, unit = ?, low_stock_at = ?, supplier = ?, product_url = ?,
+           notes = ?, price_amount = ?, price_currency = ?, price_tax = ?, price_checked_at = ?,
+           price_detail = ?, alert_active = ?, updated_at = ?
        WHERE id = ?`,
     ).run(
       cleaned.name,
@@ -481,7 +534,13 @@ export function updateItem(
       cleaned.unit,
       cleaned.lowStockAt,
       cleaned.supplier,
+      cleaned.productUrl ?? "",
       cleaned.notes,
+      lookupChanged ? null : current.priceAmount,
+      lookupChanged ? "" : current.priceCurrency,
+      lookupChanged ? "" : current.priceTax,
+      lookupChanged ? null : current.priceCheckedAt,
+      lookupChanged ? "" : current.priceDetail,
       alertActive,
       now,
       id,
@@ -493,6 +552,33 @@ export function updateItem(
     return { item: getItem(db, id)!, notice };
   });
   return run();
+}
+
+export function recordPrice(
+  db: Database,
+  id: string,
+  quote: {
+    amount: number | null;
+    currency: string;
+    tax: PriceTax;
+    detail: string;
+    checkedAt?: string;
+  },
+): void {
+  const current = getItem(db, id);
+  if (!current) return;
+  db.prepare(
+    `UPDATE items
+     SET price_amount = ?, price_currency = ?, price_tax = ?, price_checked_at = ?, price_detail = ?
+     WHERE id = ?`,
+  ).run(
+    quote.amount,
+    quote.currency.slice(0, 8),
+    quote.tax,
+    quote.checkedAt ?? new Date().toISOString(),
+    quote.detail.slice(0, 240),
+    id,
+  );
 }
 
 export function deleteItem(db: Database, id: string): void {

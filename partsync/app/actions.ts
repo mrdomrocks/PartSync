@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { StockError } from "@/lib/errors";
+import { refreshItemPrice, refreshLowPrices } from "@/lib/fetch-price";
 import {
   checkOutBom,
   createBom,
@@ -19,6 +20,7 @@ import {
   updateItem,
 } from "@/lib/inventory";
 import { deliverMessage } from "@/lib/mail";
+import { supplierPage } from "@/lib/suppliers";
 import { bomDraftFromForm, itemDraftFromForm, parseAmount, parseKind } from "@/lib/parse";
 import { writeSettings } from "@/lib/settings";
 import { movementLine, stockLabel } from "@/lib/stock-rules";
@@ -40,6 +42,23 @@ function revalidateStock(itemId?: string) {
   if (itemId) {
     revalidatePath(`/items/${itemId}`);
     revalidatePath(`/items/${itemId}/take`);
+  }
+}
+
+async function readPrice(item: {
+  id: string;
+  supplier: string;
+  sku: string;
+  productUrl: string;
+}): Promise<string> {
+  if (!supplierPage(item)) return "";
+  try {
+    const refreshed = await refreshItemPrice(getDb(), item.id);
+    return refreshed.note ? ` ${refreshed.note}` : "";
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error(error);
+    return " Couldn't reach the supplier for a price.";
   }
 }
 
@@ -67,6 +86,7 @@ export async function createItemAction(
     const outcome = createItem(getDb(), { ...draft, quantity });
     createdId = outcome.item.id;
     noticeId = outcome.notice?.messageId ?? null;
+    await readPrice(outcome.item);
   } catch (error) {
     unstable_rethrow(error);
     return fail(error);
@@ -82,16 +102,18 @@ export async function updateItemAction(
 ): Promise<ActionState> {
   const id = String(formData.get("id") ?? "");
   let noticeId: string | null = null;
+  let priceNote = "";
   try {
     const outcome = updateItem(getDb(), id, itemDraftFromForm(formData));
     noticeId = outcome.notice?.messageId ?? null;
+    priceNote = await readPrice(outcome.item);
   } catch (error) {
     unstable_rethrow(error);
     return fail(error);
   }
   const extra = await sendNotice(noticeId);
   revalidateStock(id);
-  return { ok: true, message: `Details saved.${extra}` };
+  return { ok: true, message: `Details saved.${extra}${priceNote}` };
 }
 
 export async function deleteItemAction(
@@ -305,6 +327,48 @@ export async function checkOutBomAction(
   revalidatePath(`/boms/${bomId}`);
   for (const itemId of itemIds) revalidatePath(`/items/${itemId}`);
   return { ok: true, message: `${summary}${extra}` };
+}
+
+export async function refreshPriceAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const id = String(formData.get("id") ?? "");
+  try {
+    const refreshed = await refreshItemPrice(getDb(), id);
+    revalidateStock(id);
+    if (!refreshed.found) return { ok: false, error: refreshed.note };
+    return { ok: true, message: refreshed.note };
+  } catch (error) {
+    unstable_rethrow(error);
+    return fail(error);
+  }
+}
+
+export async function refreshLowPricesAction(
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  try {
+    const result = await refreshLowPrices(getDb());
+    revalidateStock();
+    if (result.checked === 0) {
+      return {
+        ok: true,
+        message: "No supplier page to check. Add a product link, or a SKU for a supplier PartSync knows.",
+      };
+    }
+    if (result.found === 0) {
+      return { ok: false, error: "Checked the supplier pages, and none included a price." };
+    }
+    return {
+      ok: true,
+      message: result.found === 1 ? "Read 1 supplier price." : `Read ${result.found} supplier prices.`,
+    };
+  } catch (error) {
+    unstable_rethrow(error);
+    return fail(error);
+  }
 }
 
 export async function discardMessageAction(

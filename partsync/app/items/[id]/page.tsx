@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { DeleteItem } from "@/components/delete-item";
 import { Button } from "@/components/ui/button";
 import { ItemForm } from "@/components/item-form";
+import { RefreshPriceButton } from "@/components/price-actions";
 import { LedgerList } from "@/components/ledger-list";
 import { LowMark } from "@/components/low-mark";
 import { PageIntro } from "@/components/page-intro";
@@ -18,7 +19,9 @@ import {
 import { liveDb } from "@/lib/live";
 import { readSettings } from "@/lib/settings";
 import { itemLabelPath } from "@/lib/labels";
+import { formatMoney } from "@/lib/money";
 import { formatQty, isLow } from "@/lib/stock-rules";
+import { supplierPage } from "@/lib/suppliers";
 import { formatWhen } from "@/lib/time";
 
 export const metadata = {
@@ -57,6 +60,8 @@ async function ItemScreen({ params }: { params: Promise<{ id: string }> }) {
   const low = isLow(item.quantity, item.lowStockAt);
   const message = latestItemMessage(db, item.id);
   const mailNote = low ? mailCopy(item.alertActive, message, settings.timeZone) : null;
+  const page = supplierPage(item);
+  const canPrice = Boolean(item.productUrl || (item.sku && item.supplier));
 
   return (
     <>
@@ -89,9 +94,42 @@ async function ItemScreen({ params }: { params: Promise<{ id: string }> }) {
                   : `${formatQty(item.lowStockAt)} ${item.unit}`
               }
             />
-            <Row label="Supplier" value={item.supplier || "—"} />
             <Row label="SKU" value={item.sku || "—"} />
+            <Row
+              label="Supplier"
+              value={
+                page ? (
+                  <a
+                    href={page.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-4"
+                  >
+                    {item.supplier || "Product page"}
+                  </a>
+                ) : (
+                  item.supplier || "—"
+                )
+              }
+            />
+            <Row
+              label="Price"
+              value={
+                item.priceAmount == null
+                  ? "—"
+                  : formatMoney(item.priceAmount, item.priceCurrency, item.priceTax)
+              }
+            />
           </dl>
+          {item.priceCheckedAt || item.priceDetail ? (
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              {item.priceCheckedAt
+                ? `Checked ${formatWhen(item.priceCheckedAt, settings.timeZone)}.`
+                : ""}
+              {item.priceDetail ? ` ${item.priceDetail}` : ""}
+            </p>
+          ) : null}
+          {canPrice ? <RefreshPriceButton id={item.id} /> : null}
           {item.notes ? <p className="mt-4 text-sm leading-6">{item.notes}</p> : null}
           {mailNote ? (
             <p className="mt-4 text-sm leading-6 text-low-ink">{mailNote}</p>
@@ -125,7 +163,7 @@ async function ItemScreen({ params }: { params: Promise<{ id: string }> }) {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex justify-between gap-4">
       <dt className="text-muted-foreground">{label}</dt>

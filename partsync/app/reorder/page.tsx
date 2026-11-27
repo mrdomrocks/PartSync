@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { SendReorderButton } from "@/components/mail-actions";
+import { RefreshPricesButton } from "@/components/price-actions";
 import { PageIntro } from "@/components/page-intro";
 import { PrintButton } from "@/components/print-button";
 import { ShelfSkeleton } from "@/components/shelf-skeleton";
 import { lowItems } from "@/lib/inventory";
 import { liveDb } from "@/lib/live";
 import { readSettings } from "@/lib/settings";
+import { formatMoney } from "@/lib/money";
 import { formatQty } from "@/lib/stock-rules";
+import { supplierPage } from "@/lib/suppliers";
 import { formatDay } from "@/lib/time";
 
 export const metadata = {
@@ -37,6 +40,7 @@ async function Reorder() {
           lede={`${settings.siteName}. Items at or below their reorder line.`}
         />
         <div className="no-print mb-8 flex flex-wrap gap-2">
+          <RefreshPricesButton />
           <PrintButton />
           <SendReorderButton />
         </div>
@@ -50,7 +54,7 @@ async function Reorder() {
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full min-w-[40rem] border-collapse text-sm">
+          <table className="w-full min-w-[48rem] border-collapse text-sm">
             <caption className="sr-only">Items that need ordering</caption>
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
@@ -58,31 +62,53 @@ async function Reorder() {
                 <th className="px-4 py-3 font-medium">In stock</th>
                 <th className="px-4 py-3 font-medium">Reorder at</th>
                 <th className="px-4 py-3 font-medium">Supplier</th>
+                <th className="px-4 py-3 font-medium">Price</th>
                 <th className="px-4 py-3 font-medium">Order</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3">
-                    <Link href={`/items/${item.id}`} className="font-medium hover:underline">
-                      {item.name}
-                    </Link>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      {[item.sku, item.category].filter(Boolean).join(" · ")}
-                      {item.notes ? ` · ${item.notes}` : ""}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 tabular-nums">
-                    {formatQty(item.quantity)} {item.unit}
-                  </td>
-                  <td className="px-4 py-3 tabular-nums">
-                    {item.lowStockAt == null ? "—" : `${formatQty(item.lowStockAt)} ${item.unit}`}
-                  </td>
-                  <td className="px-4 py-3">{item.supplier || "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">__________</td>
-                </tr>
-              ))}
+              {items.map((item) => {
+                const page = supplierPage(item);
+                return (
+                  <tr key={item.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3">
+                      <Link href={`/items/${item.id}`} className="font-medium hover:underline">
+                        {item.name}
+                      </Link>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {[item.sku, item.category].filter(Boolean).join(" · ")}
+                        {item.notes ? ` · ${item.notes}` : ""}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 tabular-nums">
+                      {formatQty(item.quantity)} {item.unit}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums">
+                      {item.lowStockAt == null ? "—" : `${formatQty(item.lowStockAt)} ${item.unit}`}
+                    </td>
+                    <td className="px-4 py-3">
+                      {page ? (
+                        <a
+                          href={page.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-4"
+                        >
+                          {item.supplier || "Product page"}
+                        </a>
+                      ) : (
+                        item.supplier || "—"
+                      )}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums">
+                      {item.priceAmount == null
+                        ? "—"
+                        : formatMoney(item.priceAmount, item.priceCurrency, item.priceTax)}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">__________</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

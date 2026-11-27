@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatQty } from "@/lib/stock-rules";
+import { KNOWN_SUPPLIER_NAMES } from "@/lib/suppliers";
 import type { ShelfItem } from "@/lib/types";
 
 type Hints = {
@@ -151,6 +152,21 @@ export function ItemForm({
               </datalist>
             </Field>
           </div>
+          <Field
+            label="Product page"
+            hint={`Optional. Paste the supplier’s page for this item. With a SKU, PartSync can also look up ${KNOWN_SUPPLIER_NAMES}.`}
+          >
+            <Input
+              name="productUrl"
+              type="url"
+              inputMode="url"
+              defaultValue={item?.productUrl ?? ""}
+              maxLength={1000}
+              placeholder="https://"
+              className="h-11 text-base"
+              autoComplete="off"
+            />
+          </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             {mode === "create" ? (
               <Field label="Opening count">

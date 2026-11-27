@@ -1,5 +1,8 @@
 export type MovementKind = "out" | "in" | "set";
 
+/** "" when the page didn't say; "ex" or "inc" when it did. */
+export type PriceTax = "" | "ex" | "inc";
+
 export type ShelfItem = {
   id: string;
   name: string;
@@ -9,6 +12,12 @@ export type ShelfItem = {
   quantity: number;
   lowStockAt: number | null;
   supplier: string;
+  productUrl: string;
+  priceAmount: number | null;
+  priceCurrency: string;
+  priceTax: PriceTax;
+  priceCheckedAt: string | null;
+  priceDetail: string;
   notes: string;
   alertActive: boolean;
   createdAt: string;
@@ -113,5 +122,6 @@ export type ItemDraft = {
   unit: string;
   lowStockAt: number | null;
   supplier: string;
+  productUrl?: string;
   notes: string;
 };

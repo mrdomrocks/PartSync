@@ -3,7 +3,8 @@ import type { Database } from "better-sqlite3";
 import nodemailer from "nodemailer";
 import { composeMessage } from "@/lib/compose";
 import { StockError } from "@/lib/errors";
-import { getMessage, markMessage } from "@/lib/inventory";
+import { refreshStalePrices } from "@/lib/fetch-price";
+import { getMessage, lowItems, markMessage } from "@/lib/inventory";
 import { recipientList, readSettings, sendBlocker } from "@/lib/settings";
 import type { MessageKind, MessageStatus, Settings } from "@/lib/types";
 
@@ -42,7 +43,7 @@ function safeError(error: unknown, secret: string): string {
 
 async function sendMail(
   settings: Settings,
-  message: { subject: string; text: string },
+  message: { subject: string; text: string; html?: string },
   recipients: string[],
 ): Promise<void> {
   const secure = settings.smtpSecure === "ssl";
@@ -63,6 +64,7 @@ async function sendMail(
     to: recipients,
     subject: message.subject,
     text: message.text,
+    html: message.html,
   });
 }
 
@@ -87,6 +89,14 @@ export async function deliverMessage(db: Database, messageId: string): Promise<D
       detail: blocker,
       userNote: noteFor(message.kind, "held", recipients, blocker),
     };
+  }
+
+  if (message.kind !== "test") {
+    try {
+      await refreshStalePrices(db, lowItems(db));
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   const composed = composeMessage(db, message.id, settings);

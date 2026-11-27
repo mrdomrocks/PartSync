@@ -12,6 +12,12 @@ CREATE TABLE IF NOT EXISTS items (
   quantity REAL NOT NULL DEFAULT 0,
   low_stock_at REAL,
   supplier TEXT NOT NULL DEFAULT '',
+  product_url TEXT NOT NULL DEFAULT '',
+  price_amount REAL,
+  price_currency TEXT NOT NULL DEFAULT '',
+  price_tax TEXT NOT NULL DEFAULT '',
+  price_checked_at TEXT,
+  price_detail TEXT NOT NULL DEFAULT '',
   notes TEXT NOT NULL DEFAULT '',
   alert_active INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
@@ -75,9 +81,15 @@ CREATE INDEX IF NOT EXISTS messages_status ON messages (status, created_at DESC)
 CREATE INDEX IF NOT EXISTS bom_lines_bom_id ON bom_lines (bom_id);
 `;
 
-function columnNames(db: Database.Database, table: "movements"): Set<string> {
+function columnNames(db: Database.Database, table: string): Set<string> {
   const rows = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   return new Set(rows.map((row) => row.name));
+}
+
+function addColumn(db: Database.Database, table: string, column: string, definition: string) {
+  if (!columnNames(db, table).has(column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition}`);
+  }
 }
 
 function migrate(db: Database.Database) {
@@ -89,6 +101,12 @@ function migrate(db: Database.Database) {
     db.exec("ALTER TABLE movements ADD COLUMN batch_name TEXT NOT NULL DEFAULT ''");
   }
   db.exec("CREATE INDEX IF NOT EXISTS movements_batch_id ON movements (batch_id)");
+  addColumn(db, "items", "product_url", "product_url TEXT NOT NULL DEFAULT ''");
+  addColumn(db, "items", "price_amount", "price_amount REAL");
+  addColumn(db, "items", "price_currency", "price_currency TEXT NOT NULL DEFAULT ''");
+  addColumn(db, "items", "price_tax", "price_tax TEXT NOT NULL DEFAULT ''");
+  addColumn(db, "items", "price_checked_at", "price_checked_at TEXT");
+  addColumn(db, "items", "price_detail", "price_detail TEXT NOT NULL DEFAULT ''");
 }
 
 export function openDatabase(filename: string): Database.Database {

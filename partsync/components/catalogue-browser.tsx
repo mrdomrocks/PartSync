@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { LowMark } from "@/components/low-mark";
 import { Input } from "@/components/ui/input";
+import { formatMoney } from "@/lib/money";
 import { formatQty, isLow } from "@/lib/stock-rules";
 import { formatWhen } from "@/lib/time";
 import type { ShelfItem } from "@/lib/types";
@@ -92,8 +93,16 @@ export function CatalogueBrowser({
                       {low ? <LowMark /> : null}
                     </span>
                     <span className="mt-1 block truncate text-sm text-muted-foreground">
-                      {[item.category, item.sku, item.supplier].filter(Boolean).join(" · ") ||
-                        "No place or supplier yet"}
+                      {[
+                        item.category,
+                        item.sku,
+                        item.supplier,
+                        item.priceAmount == null
+                          ? ""
+                          : formatMoney(item.priceAmount, item.priceCurrency, item.priceTax),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "No place or supplier yet"}
                       {item.lastOutAt
                         ? ` · last taken ${formatWhen(item.lastOutAt, timeZone)}`
                         : ""}

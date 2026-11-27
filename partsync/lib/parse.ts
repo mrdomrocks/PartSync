@@ -54,6 +54,7 @@ export function itemDraftFromForm(formData: FormData): ItemDraft {
     unit,
     lowStockAt: parseThreshold(String(formData.get("lowStockAt") ?? "")),
     supplier: clip(String(formData.get("supplier") ?? ""), 120, "The supplier"),
+    productUrl: clip(String(formData.get("productUrl") ?? ""), 1000, "The product page"),
     notes: clip(String(formData.get("notes") ?? ""), 500, "The note"),
   };
 }

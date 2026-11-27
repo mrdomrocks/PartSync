@@ -10,6 +10,7 @@ import { TakePanel } from "@/components/take-panel";
 import { boardData, suggestions } from "@/lib/inventory";
 import { liveDb } from "@/lib/live";
 import { readSettings } from "@/lib/settings";
+import { formatMoney } from "@/lib/money";
 import { formatQty, stockLabel } from "@/lib/stock-rules";
 import { formatDay } from "@/lib/time";
 
@@ -108,6 +109,9 @@ async function Board() {
                               ? ` · reorder at ${formatQty(item.lowStockAt)}`
                               : ""}
                             {item.supplier ? ` · ${item.supplier}` : ""}
+                            {item.priceAmount == null
+                              ? ""
+                              : ` · ${formatMoney(item.priceAmount, item.priceCurrency, item.priceTax)}`}
                           </span>
                         </span>
                       </Link>

@@ -20,6 +20,7 @@ The cupboard starts empty. **Add an item** puts the first thing on the shelf. Lo
 ## Counts, the ledger, and the reorder line
 
 - **Add an item** with a name, the unit you count (reams, boxes, kg), the opening count, and an optional reorder line.
+- SKU, supplier, and a link to the product page are optional. PartSync uses them on the order email.
 - Leave the reorder line blank and PartSync will never email about that item.
 - **Take out** asks for a name, so the ledger shows who took it. You can’t take more than is in stock.
 - **Book in** is a delivery or a return. **Correct count** is a stocktake. Both are logged.
@@ -42,7 +43,9 @@ Port 465 uses SSL. A relay on the Pi’s own network can use no encryption. **Se
 
 The same settings can live in `.env.local` (see `.env.example`). Anything set there overrides the form, which is the better place for the SMTP password. Copy the example, fill in the values, and restart.
 
-Put the Pi’s address in **Address on the network** (`http://192.168.1.20:4747`) if you want the email to include a link to the order list.
+Put the Pi’s address in **Address on the network** (`http://192.168.1.20:4747`) if you want the email to include a link to the order list and to each item.
+
+The email names the SKU and the supplier. A product page link is included when you saved one. For RS, Screwfix, Toolstation, Farnell, CPC, Digi-Key, Mouser, Rapid, Viking, and Amazon, a SKU is enough for a search link. PartSync reads a current price from that page when the supplier includes one, and shows it on the item, the order list, and in the email. **Refresh price** checks again.
 
 “Taken today” uses the time zone in Setup. It defaults to `Europe/London`, including when the Pi’s own clock is UTC.
 
